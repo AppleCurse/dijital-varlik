@@ -214,27 +214,53 @@ def zincir_kod(gorev: str):
 # ═══════════════════════════════════════════════════════════
 
 def _konus(metin: str):
-    """Metni seslendir. Önce F5-TTS dene, yoksa espeak."""
+    """Metni seslendir. F5-TTS gerçek sentez → espeak fallback."""
     if not metin:
         return
+
+    # F5-TTS gerçek ses sentezi dene
     try:
-        from mudahale.f5tts_bridge import get_f5tts
-        f5 = get_f5tts()
-        if f5 and f5.hazir_mi():
-            print(f"🔊 F5-TTS seslendiriyor: {metin[:80]}...")
-            f5.calistir(metin[:500])
+        from altyapi.vram_manager import vram
+        import torch
+
+        def _f5_sentez():
+            from f5_tts.api import F5TTS
+            return F5TTS(model="F5TTS_v1_Base")
+
+        with vram.acquire("f5tts", _f5_sentez) as f5:
+            import tempfile, os
+            tmp = os.path.join(tempfile.gettempdir(), "dv_tts_out.wav")
+            f5.infer(
+                ref_file=None,  # zero-shot, ref ses yok
+                ref_text="",
+                gen_text=metin[:500],
+                file_wave=tmp,
+                nfe_step=16,
+            )
+            # Oynat
+            try:
+                import soundfile as sf
+                import sounddevice as sd
+                wav, sr = sf.read(tmp)
+                sd.play(wav, sr)
+                sd.wait()
+            except Exception:
+                pass
+            print(f"🔊 F5-TTS: {metin[:80]}...")
             bus.publish(Event(EventType.SPEECH_SYNTHESIS_COMPLETED, {"text": metin[:100]}))
             return
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"  F5-TTS hatası (espeak'e düşüyor): {str(e)[:100]}")
 
+    # espeak fallback
     try:
         import subprocess
-        subprocess.run(["espeak-ng", "-v", "tr", metin[:500]], timeout=30)
+        subprocess.run(["espeak-ng", "-v", "tr", metin[:500]],
+                       timeout=30, capture_output=True)
         print(f"🔊 espeak: {metin[:80]}...")
         bus.publish(Event(EventType.SPEECH_SYNTHESIS_COMPLETED, {"text": metin[:100]}))
     except Exception:
-        print(f"🔇 Seslendirme başarısız. Metin: {metin[:100]}")
+        print(f"🔇 Seslendirme başarısız: {metin[:100]}")
 
 
 # ═══════════════════════════════════════════════════════════
