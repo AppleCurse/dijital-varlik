@@ -1,0 +1,9 @@
+model_list:
+  - model_name: default
+    litellm_params:
+      model: "openai/kr/glm-5"
+      api_base: "http://localhost:20128/v1"
+      api_key: "sk-5762d1405cedb9c7-txz14a-1ae81231"
+general_settings:
+  database_url: null
+  master_key: "sk-5762d1405cedb9c7-txz14a-1ae81231"

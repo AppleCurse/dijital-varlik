@@ -1,0 +1,18 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "dijital-varlik-hebo",
+      "dependencies": {
+        "@hebo-ai/gateway": "link:../../hebo-gateway-main/hebo-gateway-main",
+        "hono": "^4.0.0",
+      },
+    },
+  },
+  "packages": {
+    "@hebo-ai/gateway": ["@hebo-ai/gateway@link:../../hebo-gateway-main/hebo-gateway-main", {}],
+
+    "hono": ["hono@4.12.27", "", {}, "sha512-1yrb/+w6HWQJrUCLkJ2IF5jNIPvvFkblV5RNOYl6bV+OA6p9GLcMpHFFGTosSvHvcAUibuUukRqhlYI4z32C7Q=="],
+  }
+}

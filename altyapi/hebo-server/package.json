@@ -1,0 +1,13 @@
+{
+  "name": "dijital-varlik-hebo",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch server.ts",
+    "start": "bun run server.ts"
+  },
+  "dependencies": {
+    "@hebo-ai/gateway": "file:../../hebo-gateway-main/hebo-gateway-main",
+    "hono": "^4.0.0"
+  }
+}

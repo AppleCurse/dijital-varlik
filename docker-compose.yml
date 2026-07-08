@@ -1,0 +1,90 @@
+version: '3.8'
+
+networks:
+  dv-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
+
+services:
+  # ── 9Router: AI Model Yönlendirici ──
+  9router:
+    image: decolua/9router
+    container_name: dv-9router
+    ports:
+      - "20128:20128"
+    networks:
+      dv-net:
+        ipv4_address: 172.30.0.10
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:20128/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # ── LiteLLM: LLM Proxy ──
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: dv-litellm
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml
+    environment:
+      - LITELLM_MASTER_KEY=omniroute
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    networks:
+      dv-net:
+        ipv4_address: 172.30.0.20
+    depends_on:
+      9router:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f -H 'Authorization: Bearer omniroute' http://localhost:4000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  # ── Browserless: Headless Chrome CDP ──
+  browserless:
+    image: browserless/chrome
+    container_name: dv-browserless
+    ports:
+      - "3004:3000"
+    networks:
+      dv-net:
+        ipv4_address: 172.30.0.30
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/json/version || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── PostgreSQL: BettaFish Veritabanı ──
+  db:
+    image: postgres:15-alpine
+    container_name: dv-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=administrator
+      - POSTGRES_PASSWORD=cavalli_istihbarat_2026
+      - POSTGRES_DB=bettafish
+    volumes:
+      - ./altyapi/postgres_data:/var/lib/postgresql/data
+    networks:
+      dv-net:
+        ipv4_address: 172.30.0.40
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U administrator -d bettafish || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
