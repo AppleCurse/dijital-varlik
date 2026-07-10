@@ -18,7 +18,8 @@ sys.path.insert(0, str(ROOT))
 
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="OTONOM KOR — NANO MATRIS")
 

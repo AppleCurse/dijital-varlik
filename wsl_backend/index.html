@@ -2,39 +2,66 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OTONOM KOR - NANO MATRIS</title>
-<style>*{margin:0;padding:0;box-sizing:border-box;overflow:hidden;font-family:'Courier New',monospace;user-select:none}body{background:#000;color:#10b981;height:100vh;width:100vw}#canvas-container{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}#ui-layer{position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;pointer-events:none;display:flex;flex-direction:column;justify-content:flex-end;padding:40px}#command-line{display:flex;align-items:center;pointer-events:auto;opacity:.7;transition:opacity .3s;width:50%}#command-line:hover,#command-line:focus-within{opacity:1}#cmd-prefix{font-weight:bold;margin-right:15px;font-size:14px;text-shadow:0 0 5px #10b981}#cmd-input{background:transparent;border:none;border-bottom:1px solid rgba(16,185,129,.3);color:#f4f4f5;font-size:14px;width:100%;outline:none;padding:5px 0;text-transform:uppercase;letter-spacing:1px}#cmd-input:focus{border-bottom:1px solid #10b981}#hologram-text{position:absolute;top:50px;left:50px;width:420px;color:#a1a1aa;font-size:11px;text-transform:uppercase;letter-spacing:1px;line-height:1.5;pointer-events:none;opacity:0;transition:opacity .5s}.holo-title{color:#10b981;font-weight:bold;margin-bottom:10px;border-bottom:1px solid rgba(16,185,129,.3);display:inline-block;padding-bottom:2px}#sys-status{position:absolute;top:50px;right:50px;text-align:right;font-size:10px;color:#52525b;pointer-events:none}.status-on{color:#10b981;text-shadow:0 0 3px #10b981}.status-off{color:#ef4444;text-shadow:0 0 3px #ef4444}#log-strip{position:absolute;bottom:100px;left:40px;width:50%;max-height:140px;overflow-y:auto;font-size:10px;color:#52525b;pointer-events:none}#log-strip div{margin-bottom:2px}#log-strip span{color:#10b981}</style>
+<title>DİJİTAL VARLIK — Komuta Merkezi</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,monospace;background:#050508;color:#c0c0c0;height:100vh;display:flex;flex-direction:column;font-size:12px}
+header{background:#0a0a12;padding:6px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1a1a2e;flex-shrink:0}
+header h1{font-size:13px;color:#7c3aed;letter-spacing:1px}
+.hw{display:flex;gap:10px;font-size:9px}
+.hw span{padding:2px 6px;border-radius:3px;background:#111}
+.hw .on{color:#22c55e}.hw .off{color:#ef4444}
+main{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:4px;padding:4px;overflow:hidden}
+.panel{background:#0a0a14;border:1px solid #1a1a2e;border-radius:4px;display:flex;flex-direction:column;overflow:hidden}
+.panel-header{background:#0f0f1a;padding:4px 8px;font-size:9px;color:#666;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #1a1a2e;display:flex;justify-content:space-between;flex-shrink:0}
+.panel-body{flex:1;overflow-y:auto;padding:6px;font-size:10px;line-height:1.5}
+.cmd-bar{background:#0a0a12;padding:6px 10px;border-top:1px solid #1a1a2e;display:flex;gap:6px;flex-shrink:0}
+.cmd-bar input{flex:1;background:#0f0f1a;border:1px solid #1a1a2e;border-radius:4px;padding:8px 10px;color:#e0e0e0;font-size:12px;outline:none;font-family:monospace}
+.cmd-bar input:focus{border-color:#7c3aed}
+.cmd-bar button{background:#7c3aed;border:none;border-radius:4px;padding:8px 14px;color:#fff;font-weight:bold;cursor:pointer;font-size:11px}
+.log-line{margin:1px 0;padding:1px 0;border-bottom:1px solid #0f0f1a}
+.log-line .ts{color:#444;margin-right:4px}
+.log-line .src{color:#7c3aed;margin-right:4px;font-weight:bold}
+.log-line .msg{color:#999}
+.log-line.kod .msg{color:#22c55e}
+.log-line.mahkeme .msg{color:#f59e0b}
+.log-line.hata .msg{color:#ef4444}
+.cap-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.cap{background:#0f0f1a;padding:6px;border-radius:3px;text-align:center;font-size:9px}
+.cap .icon{font-size:18px;display:block}
+.cap.on{border:1px solid #1a3a1a}.cap.off{border:1px solid #3a1a1a;opacity:.4}
+#mahkeme-body .phase{margin:4px 0;padding:4px 6px;background:#0f0f1a;border-radius:2px;border-left:2px solid #7c3aed;font-size:9px}
+#mahkeme-body .phase .role{color:#7c3aed;font-weight:bold}
+#kod-body{font-family:monospace;font-size:9px;white-space:pre-wrap;color:#22c55e}
+@media(max-width:900px){main{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr 1fr}}
+@media(max-width:500px){main{grid-template-columns:1fr;grid-template-rows:auto}}
+</style>
 </head>
 <body>
-<div id="canvas-container"></div>
-<div id="ui-layer">
-<div id="hologram-text"><div class="holo-title" id="holo-title">MAHKEME PROTOKOLU</div><div id="holo-content">Beklemede...</div></div>
-<div id="sys-status">BAGLANTI: <span class="status-off" id="stat-conn">BEKLENIYOR</span><br>MAHKEME: <span class="status-on">AKTIF</span><br>KESICI: <span class="status-on">< 1MS</span><br>NANO: <span class="status-on">STABIL</span></div>
-<div id="log-strip"></div>
-<div id="command-line"><span id="cmd-prefix">MOSYO ></span><input type="text" id="cmd-input" autocomplete="off" spellcheck="false"></div>
-</div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<header><h1>⬡ DİJİTAL VARLIK — KOMUTA MERKEZİ</h1><div class="hw" id="hw"></div></header>
+<main>
+<div class="panel"><div class="panel-header">⚖️ MAHKEME <span id="mahkeme-stat">BEKLEMEDE</span></div><div class="panel-body" id="mahkeme-body">Mahkeme 4 rol: Savcı, Savunma, Şüpheci, Hakim. Komut girince canlı izle.</div></div>
+<div class="panel"><div class="panel-header">💻 KOD AJANI <span id="kod-stat">HAZIR</span></div><div class="panel-body" id="kod-body">smolagents CodeAgent hazır. Kod yazma komutu bekliyor.</div></div>
+<div class="panel" style="grid-row:span 2"><div class="panel-header">📡 SİSTEM LOGU</div><div class="panel-body" id="log-body"></div></div>
+<div class="panel"><div class="panel-header">🛡️ YETENEKLER</div><div class="panel-body" id="cap-body"><div class="cap-grid"><div class="cap on"><span class="icon">💬</span>Sohbet</div><div class="cap on"><span class="icon">💻</span>Kod</div><div class="cap on"><span class="icon">🌐</span>Web</div><div class="cap on"><span class="icon">👁️</span>Görü</div><div class="cap on"><span class="icon">👤</span>Yüz</div><div class="cap on"><span class="icon">📚</span>Arama</div><div class="cap on"><span class="icon">🔊</span>Ses</div><div class="cap on"><span class="icon">🧠</span>Hafıza</div></div></div></div>
+<div class="panel"><div class="panel-header">🎯 KOMUT SONUCU</div><div class="panel-body" id="cmd-body" style="display:flex;align-items:center;justify-content:center;font-size:14px;color:#7c3aed">KOMUT GİRİN</div></div>
+</main>
+<div class="cmd-bar"><input id="cmd" placeholder="komut yaz..." onkeydown="if(event.key==='Enter')send()" autofocus><button onclick="send()">GÖNDER</button></div>
 <script>
-const C=document.getElementById('canvas-container'),S=new THREE.Scene();S.background=new THREE.Color(0);const cam=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,1000);cam.position.z=150;const R=new THREE.WebGLRenderer({antialias:!0,alpha:!0});R.setSize(innerWidth,innerHeight);C.appendChild(R.domElement);
-const N=10000,G=new THREE.BufferGeometry(),P=new Float32Array(N*3),T=new Float32Array(N*3),O=new Float32Array(N*3);
-for(let i=0;i<N*3;i+=3){let r=40*Math.cbrt(Math.random()),t=Math.random()*2*Math.PI,p=Math.acos(2*Math.random()-1);P[i]=r*Math.sin(p)*Math.cos(t);P[i+1]=r*Math.sin(p)*Math.sin(t);P[i+2]=r*Math.cos(p);O[i]=P[i];O[i+1]=P[i+1];O[i+2]=P[i+2];T[i]=P[i];T[i+1]=P[i+1];T[i+2]=P[i+2]}
-G.setAttribute('position',new THREE.BufferAttribute(P,3));
-const M=new THREE.PointsMaterial({color:0x10b981,size:.5,transparent:!0,opacity:.8,blending:THREE.AdditiveBlending}),Q=new THREE.Points(G,M);S.add(Q);
-function morph(s){let p=G.attributes.position.array,i=0;if(s==='browser')for(let j=0;j<N;j++){T[i++]=(Math.random()-.5)*200;T[i++]=(Math.random()-.5)*150;T[i++]=(Math.random()-.5)*20}else for(let j=0;j<N*3;j++)T[j]=O[j];gsap.to(p,{endArray:T,duration:1.5,ease:'power3.inOut',onUpdate:()=>{G.attributes.position.needsUpdate=!0}})}
-const HD=document.getElementById('hologram-text'),HT=document.getElementById('holo-title'),HC=document.getElementById('holo-content');let tT=null;
-function showH(txt){clearTimeout(tT);HT.innerText='MAHKEME_KONSENSUSU';HC.innerText='';HD.style.opacity=1;let i=0;function tw(){if(i<txt.length){HC.innerHTML+=txt.charAt(i);i++;tT=setTimeout(tw,15)}}tw()}
-function hideH(){HD.style.opacity=0}
-const LS=document.getElementById('log-strip');
-function pL(src,msg){let d=document.createElement('div');d.innerHTML='<span>['+src.toUpperCase()+']</span> '+msg;LS.appendChild(d);while(LS.children.length>6)LS.removeChild(LS.firstChild)}
-const CL=new THREE.Clock();function anim(){requestAnimationFrame(anim);let t=CL.getElapsedTime();Q.rotation.y=t*.1;Q.rotation.x=t*.05;R.render(S,cam)}anim();
-addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();R.setSize(innerWidth,innerHeight)});
-addEventListener('mousemove',e=>{gsap.to(Q.rotation,{x:-(e.clientY/innerHeight)*1+.5,y:(e.clientX/innerWidth)*1-.5,duration:2})});
-const SC=document.getElementById('stat-conn');let ws=null,rt=null;
-function conn(){ws=new WebSocket('ws://'+location.host+'/ws');ws.onopen=()=>{SC.textContent='BAGLI';SC.className='status-on';pL('sistem','Baglanti kuruldu')};ws.onclose=()=>{SC.textContent='KOPTU';SC.className='status-off';clearTimeout(rt);rt=setTimeout(conn,3000)};ws.onerror=()=>{SC.textContent='HATA';SC.className='status-off'};ws.onmessage=e=>{let p=JSON.parse(e.data);if(p.type==='log'){pL(p.source,p.message);if(p.source==='otonom'&&p.message.includes('web'))morph('browser')}else if(p.type==='response')showH(p.data)}}
+const WS_URL='ws://'+location.host+'/ws';let ws=null,rt=null;
+function conn(){ws=new WebSocket(WS_URL);ws.onopen=()=>{updHW('BAGLI','on');log('sistem','Komuta merkezi baglantisi kuruldu.')};ws.onclose=()=>{updHW('KOPTU','off');clearTimeout(rt);rt=setTimeout(conn,3000)};ws.onerror=()=>updHW('HATA','off');ws.onmessage=e=>{let p=JSON.parse(e.data);handle(p)}}
+function handle(p){
+  if(p.type==='log')log(p.source,p.message);
+  else if(p.type==='response'){let el=document.getElementById('cmd-body');el.innerHTML='<div style="color:#e0e0e0;font-size:11px">'+p.data+'</div>';el.style.alignItems='flex-start';log(p.source||'cevap',p.data.substring(0,120))}
+  else if(p.type==='status'){updHW('ON','on');log('sistem',p.data)}
+  else if(p.type==='capabilities'){let c=document.getElementById('cap-body'),h='<div class="cap-grid">',icons={sohbet:'💬',kod:'💻',web:'🌐',goru:'👁️',yuz:'👤',arama:'📚',ses:'🔊',hafiza:'🧠'};for(let[k,v]of Object.entries(p.data))h+='<div class="cap '+(v?'on':'off')+'"><span class="icon">'+(icons[k]||'?')+'</span>'+k+'</div>';c.innerHTML=h+'</div>'}
+  else if(p.type==='mahkeme'){let m=document.getElementById('mahkeme-body');m.innerHTML+='<div class="phase"><span class="role">'+p.role+'</span> '+p.data.substring(0,200)+'</div>';document.getElementById('mahkeme-stat').textContent=p.role;m.scrollTop=m.scrollHeight}
+  else if(p.type==='kod'){let k=document.getElementById('kod-body');k.innerHTML+='<div style="color:#22c55e">'+p.data+'</div>';document.getElementById('kod-stat').textContent='CALISIYOR';k.scrollTop=k.scrollHeight}
+}
+function send(){let v=document.getElementById('cmd').value.trim();if(!v||!ws)return;ws.send(JSON.stringify({type:'command',data:v}));log('komut','> '+v);document.getElementById('cmd').value='';let el=document.getElementById('cmd-body');el.innerHTML='<div style="color:#7c3aed;font-size:14px">ISLENIYOR...</div>';el.style.alignItems='center'}
+function log(src,msg){let d=document.createElement('div');d.className='log-line'+(src==='kod'?' kod':src==='mahkeme'?' mahkeme':src==='hata'?' hata':'');let t=new Date().toLocaleTimeString().slice(0,5);d.innerHTML='<span class="ts">'+t+'</span><span class="src">['+src.toUpperCase()+']</span><span class="msg">'+msg+'</span>';let lb=document.getElementById('log-body');lb.appendChild(d);while(lb.children.length>200)lb.removeChild(lb.firstChild);lb.scrollTop=lb.scrollHeight}
+function updHW(txt,cls){document.getElementById('hw').innerHTML='<span class="'+cls+'">'+txt+'</span>'}
 conn();
-function send(k){if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'command',data:k}));else showH('Baglanti yok')}
-const CI=document.getElementById('cmd-input');CI.focus();CI.addEventListener('keypress',e=>{if(e.key==='Enter'){let v=CI.value.trim();if(!v)return;if(v.includes('web')||v.includes('ara'))morph('browser');else if(v.includes('kapat')||v.includes('don')){morph('idle');hideH()}send(v);CI.value=''}})
 </script>
 </body>
 </html>
