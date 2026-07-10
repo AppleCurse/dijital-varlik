@@ -6,81 +6,115 @@
 <title>Dijital Varlık</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:system-ui,sans-serif;background:#0a0a0f;color:#e0e0e0;height:100dvh;display:flex;flex-direction:column}
-header{background:#111;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222}
-header h1{font-size:18px;color:#7c3aed}
-.status-dots{display:flex;gap:10px;font-size:11px}
-.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
-.dot.on{background:#22c55e}.dot.off{background:#ef4444}
-main{flex:1;overflow-y:auto;padding:12px}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:12px}
-.card{background:#16161e;border:1px solid #222;border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:.2s}
-.card:hover{background:#1e1e2e;border-color:#7c3aed}
-.card .icon{font-size:28px;margin-bottom:6px}
-.card .label{font-size:12px;color:#999}
-.chat-area{background:#16161e;border:1px solid #222;border-radius:10px;padding:12px;max-height:300px;overflow-y:auto;margin-bottom:8px;min-height:100px}
-.chat-msg{margin:6px 0;padding:8px 12px;border-radius:8px;max-width:85%;word-break:break-word;font-size:14px}
-.chat-msg.user{background:#7c3aed;color:#fff;margin-left:auto}
-.chat-msg.bot{background:#222;color:#ddd}
-.input-row{display:flex;gap:8px}
-.input-row input{flex:1;background:#16161e;border:1px solid #333;border-radius:8px;padding:12px;color:#fff;font-size:14px;outline:none}
-.input-row input:focus{border-color:#7c3aed}
-.input-row button{background:#7c3aed;border:none;border-radius:8px;padding:12px 20px;color:#fff;font-weight:bold;cursor:pointer;font-size:14px}
-footer{padding:8px 16px;font-size:10px;color:#444;text-align:center;border-top:1px solid#222}
-.loading{opacity:.5;pointer-events:none}
+body{font-family:system-ui,sans-serif;background:#0a0a0f;color:#e0e0e0;min-height:100dvh;display:flex;flex-direction:column}
+header{background:#111;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222;position:sticky;top:0;z-index:10}
+header h1{font-size:16px;color:#7c3aed}
+.hw-bar{display:flex;gap:8px;font-size:10px;flex-wrap:wrap}
+.hw{display:flex;align-items:center;gap:3px;background:#1a1a2e;padding:3px 7px;border-radius:6px}
+.hw.on{color:#22c55e}.hw.off{color:#ef4444}.hw.warn{color:#f59e0b}
+.dot{width:6px;height:6px;border-radius:50%}.dot.on{background:#22c55e}.dot.off{background:#ef4444}.dot.warn{background:#f59e0b}
+main{flex:1;overflow-y:auto;padding:10px;padding-bottom:80px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.card{background:#16161e;border:1px solid #222;border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:.15s;user-select:none}
+.card:active{background:#1e1e2e;border-color:#7c3aed;transform:scale(.97)}
+.card .icon{font-size:24px;margin-bottom:4px}
+.card .label{font-size:10px;color:#999;line-height:1.3}
+.chat-area{background:#16161e;border:1px solid #222;border-radius:10px;padding:10px;height:250px;overflow-y:auto;margin-bottom:8px}
+.chat-msg{margin:4px 0;padding:8px 12px;border-radius:8px;max-width:88%;word-break:break-word;font-size:13px;animation:fadeIn .2s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.chat-msg.user{background:#7c3aed;color:#fff;margin-left:auto;border-bottom-right-radius:2px}
+.chat-msg.bot{background:#1e1e2e;color:#ddd;border-bottom-left-radius:2px}
+.chat-msg.error{background:#3b1111;color:#fca5a5}
+.typing{display:flex;gap:4px;padding:8px 12px}.typing span{width:6px;height:6px;background:#7c3aed;border-radius:50%;animation:bounce 1s infinite}.typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+.input-bar{position:fixed;bottom:0;left:0;right:0;background:#0a0a0f;padding:8px 10px;border-top:1px solid #222;display:flex;gap:6px;align-items:center}
+.input-bar input{flex:1;background:#16161e;border:1px solid #333;border-radius:8px;padding:10px 12px;color:#fff;font-size:14px;outline:none;min-width:0}
+.input-bar input:focus{border-color:#7c3aed}
+.input-bar button{background:#7c3aed;border:none;border-radius:8px;padding:10px 16px;color:#fff;font-weight:bold;cursor:pointer;font-size:13px;white-space:nowrap}
+.input-bar button.mic{background:#1a1a2e;font-size:18px;padding:10px 12px}
+.panel{background:#16161e;border:1px solid #222;border-radius:10px;padding:12px;margin-bottom:8px}
+.panel h3{font-size:11px;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.panel-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px}
+.panel-item{display:flex;justify-content:space-between;align-items:center;padding:4px 6px;background:#111;border-radius:4px}
+.panel-item .key{color:#888}.panel-item .val{color:#ccc;font-weight:600}
 </style>
 </head>
 <body>
 <header>
 <h1>🤖 Dijital Varlık</h1>
-<div class="status-dots" id="status"></div>
+<div class="hw-bar" id="hw"></div>
 </header>
 <main>
+<div class="panel" id="sysPanel" style="display:none">
+<h3>📡 Sistem</h3>
+<div class="panel-grid" id="sysGrid"></div>
+</div>
 <div class="cards">
-<div class="card" onclick="send('merhaba nasılsın')"><div class="icon">💬</div><div class="label">Sohbet</div></div>
-<div class="card" onclick="send('saat kaç')"><div class="icon">🕐</div><div class="label">Saat/Tarih</div></div>
-<div class="card" onclick="send('python ile 1den 10a kadar topla')"><div class="icon">💻</div><div class="label">Kod Yaz</div></div>
-<div class="card" onclick="send('example.com sitesinin başlığını getir')"><div class="icon">🌐</div><div class="label">Web'de Gez</div></div>
-<div class="card" onclick="send('python nedir')"><div class="icon">📚</div><div class="label">Araştır</div></div>
-<div class="card" onclick="send('ekran görüntüsünü analiz et')"><div class="icon">👁️</div><div class="label">Görü Analizi</div></div>
+<div class="card" onclick="quick('merhaba')"><div class="icon">💬</div><div class="label">Sohbet</div></div>
+<div class="card" onclick="quick('saat kaç')"><div class="icon">🕐</div><div class="label">Saat</div></div>
+<div class="card" onclick="quick('1den 10a topla')"><div class="icon">💻</div><div class="label">Kod</div></div>
+<div class="card" onclick="quick('example.com başlığı')"><div class="icon">🌐</div><div class="label">Web</div></div>
+<div class="card" onclick="quick('python nedir')"><div class="icon">📚</div><div class="label">Bilgi</div></div>
+<div class="card" onclick="quick('ekranı analiz et')"><div class="icon">👁️</div><div class="label">Görü</div></div>
 </div>
-<div class="chat-area" id="chat"></div>
-<div class="input-row">
-<input id="msg" placeholder="Bir şey söyle..." onkeydown="if(event.key==='Enter')send()" autofocus>
-<button onclick="send()">Gönder</button>
-</div>
+<div class="chat-area" id="chat"><div class="chat-msg bot">Merhaba! Ben Dijital Varlık. Size nasıl yardımcı olabilirim? Tüm yeteneklerim hazır.</div></div>
 </main>
-<footer>Dijital Varlık · Tüm yetenekler tek arayüzde</footer>
+<div class="input-bar">
+<input id="msg" placeholder="Mesaj yaz..." onkeydown="if(event.key==='Enter')send()" autofocus>
+<button onclick="send()">➤</button>
+</div>
 <script>
+let busy=false;
 async function send(msg){
-  msg = msg || document.getElementById('msg').value;
-  if(!msg.trim()) return;
+  if(busy)return;
+  msg=msg||document.getElementById('msg').value;
+  if(!msg.trim())return;
+  busy=true;
   addMsg(msg,'user');
   document.getElementById('msg').value='';
-  document.querySelector('main').classList.add('loading');
+  let typing=addTyping();
   try{
-    let r = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
-    let d = await r.json();
-    addMsg(d.answer||'(cevap yok)','bot');
-  }catch(e){addMsg('Bağlantı hatası','bot')}
-  document.querySelector('main').classList.remove('loading');
+    let r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+    let d=await r.json();
+    typing.remove();
+    addMsg(d.answer||'(boş cevap)',d.answer?'bot':'error');
+  }catch(e){typing.remove();addMsg('Bağlantı hatası — dashboard çalışıyor mu?','error')}
+  busy=false;
 }
-function addMsg(txt,cls){
-  let d=document.createElement('div');d.className='chat-msg '+cls;d.textContent=txt;
-  document.getElementById('chat').appendChild(d);
-  document.getElementById('chat').scrollTop=document.getElementById('chat').scrollHeight;
+function quick(m){document.getElementById('msg').value=m;send(m)}
+function addMsg(t,c){
+  let d=document.createElement('div');d.className='chat-msg '+c;d.textContent=t;
+  let ch=document.getElementById('chat');ch.appendChild(d);ch.scrollTop=ch.scrollHeight;
 }
-async function checkStatus(){
+function addTyping(){
+  let d=document.createElement('div');d.className='typing';
+  for(let i=0;i<3;i++){let s=document.createElement('span');d.appendChild(s)}
+  let ch=document.getElementById('chat');ch.appendChild(d);ch.scrollTop=ch.scrollHeight;
+  return d;
+}
+async function update(){
   try{
     let r=await fetch('/api/status');let s=await r.json();
-    document.getElementById('status').innerHTML=
-      `<span><span class="dot ${s['9router']=='ON'?'on':'off'}"></span>9router</span>
-       <span><span class="dot ${s['browser']=='ON'?'on':'off'}"></span>Web</span>
-       <span>🖥️ ${s['gpu']||'?'}</span>
-       <span>📡 ${s['ram']||'?'}</span>`;
+    let hw='';
+    hw+=`<div class="hw ${s['9router']=='ON'?'on':'off'}"><div class="dot ${s['9router']=='ON'?'on':'off'}"></div>9router</div>`;
+    hw+=`<div class="hw ${s.browser=='ON'?'on':'off'}"><div class="dot ${s.browser=='ON'?'on':'off'}"></div>Web</div>`;
+    hw+=`<div class="hw ${s.gpu&&s.gpu!='YOK'?'on':'off'}"><div class="dot ${s.gpu&&s.gpu!='YOK'?'on':'warn'}"></div>GPU</div>`;
+    hw+=`<div class="hw ${s.mic&&s.mic!='YOK'?'on':'warn'}">🎤 ${s.mic||'?'}</div>`;
+    hw+=`<div class="hw warn">📡 ${s.ram||'?'}</div>`;
+    document.getElementById('hw').innerHTML=hw;
+    if(s.gpu){
+      document.getElementById('sysPanel').style.display='block';
+      document.getElementById('sysGrid').innerHTML=
+        `<div class="panel-item"><span class="key">9router</span><span class="val">${s['9router']||'?'}</span></div>
+         <div class="panel-item"><span class="key">Browser</span><span class="val">${s.browser||'?'}</span></div>
+         <div class="panel-item"><span class="key">GPU</span><span class="val">${s.gpu||'?'}</span></div>
+         <div class="panel-item"><span class="key">Mikrofon</span><span class="val">${s.mic||'?'}</span></div>
+         <div class="panel-item"><span class="key">RAM</span><span class="val">${s.ram||'?'}</span></div>
+         <div class="panel-item"><span class="key">CPU</span><span class="val">${s.cpu||'?'}</span></div>`;
+    }
   }catch(e){}
 }
-checkStatus();setInterval(checkStatus,10000);
+update();setInterval(update,5000);
 </script>
 </body>
 </html>
