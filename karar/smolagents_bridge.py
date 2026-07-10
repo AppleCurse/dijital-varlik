@@ -37,8 +37,8 @@ class SmolAgentBridge:
 
             self.model = LiteLLMModel(
                 model_id=model_id,
-                api_base=config.LITELLM_URL,
-                api_key=config.LITELLM_KEY,
+                api_base="http://localhost:4000/v1",
+                api_key="omniroute",
             )
             self.agent = CodeAgent(
                 tools=self._custom_tools,

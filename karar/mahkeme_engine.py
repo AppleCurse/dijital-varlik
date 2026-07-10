@@ -212,18 +212,18 @@ class LLMClient:
     def call(self, system_prompt: str, user_message: str,
              model: str = None, temperature: float = 0.3,
              max_tokens: int = 4096) -> dict:
-        """LLM cagrisi — once Anthropic Messages API, basarisizsa OpenAI Chat."""
+        """LLM cagrisi — OpenAI Chat, basarisizsa fallback."""
         model = model or config.MAHKEME_MODEL
 
-        # Anthropic Messages API (9router'in destekledigi format)
-        result = self._call_anthropic(system_prompt, user_message,
-                                      model, temperature, max_tokens)
+        # OpenAI Chat Completions (9router'in ana destegi)
+        result = self._call_openai(system_prompt, user_message,
+                                   model, temperature, max_tokens)
         if result and "error" not in result:
             return result
 
-        # Fallback: OpenAI Chat Completions
-        result = self._call_openai(system_prompt, user_message,
-                                   model, temperature, max_tokens)
+        # Fallback: Anthropic Messages API
+        result = self._call_anthropic(system_prompt, user_message,
+                                      model, temperature, max_tokens)
         if result and "error" not in result:
             return result
 
@@ -243,6 +243,7 @@ class LLMClient:
             ],
             "temperature": temperature,
             "max_tokens": max_tokens,
+            "stream": False,
         }
         return self._post(f"{self.base_url}/chat/completions", headers, payload)
 
