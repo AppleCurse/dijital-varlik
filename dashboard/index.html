@@ -56,6 +56,8 @@ main{flex:1;overflow-y:auto;padding:10px;padding-bottom:80px}
 <div class="card" onclick="quick('example.com başlığı')"><div class="icon">🌐</div><div class="label">Web</div></div>
 <div class="card" onclick="quick('python nedir')"><div class="icon">📚</div><div class="label">Bilgi</div></div>
 <div class="card" onclick="quick('ekranı analiz et')"><div class="icon">👁️</div><div class="label">Görü</div></div>
+<div class="card" onclick="document.getElementById('faceInput').click()"><div class="icon">👤</div><div class="label">Yüz Tanı</div></div>
+<input type="file" id="faceInput" accept="image/*" capture="environment" style="display:none" onchange="faceAnalyze(this.files[0])">
 </div>
 <div class="chat-area" id="chat"><div class="chat-msg bot">Merhaba! Ben Dijital Varlık. Size nasıl yardımcı olabilirim? Tüm yeteneklerim hazır.</div></div>
 </main>
@@ -115,6 +117,27 @@ async function update(){
   }catch(e){}
 }
 update();setInterval(update,5000);
+async function faceAnalyze(file){
+  if(!file)return;
+  addMsg("👤 Yüz analiz ediliyor: "+file.name,'user');
+  let typing=addTyping();
+  let fd=new FormData();fd.append('file',file);
+  try{
+    let r=await fetch('/api/face',{method:'POST',body:fd});
+    let d=await r.json();
+    typing.remove();
+    if(d.status==='ok'&&d.data){
+      let info=[];
+      if(d.data.age)info.push('Yaş: '+d.data.age);
+      if(d.data.dominant_gender)info.push('Cinsiyet: '+d.data.dominant_gender);
+      if(d.data.dominant_emotion)info.push('Duygu: '+d.data.dominant_emotion);
+      if(d.data.dominant_race)info.push('Irk: '+d.data.dominant_race);
+      addMsg(info.join(' • '),'bot');
+    }else{
+      addMsg('Yüz analizi başarısız: '+(d.message||'bilinmeyen hata'),'error');
+    }
+  }catch(e){typing.remove();addMsg('Analiz hatası','error')}
+}
 </script>
 </body>
 </html>
