@@ -50,6 +50,7 @@ class OpenClawBridge:
 
     def _run_telegram(self):
         """Telegram bot ana döngüsü (ayrı thread)."""
+        import asyncio
         try:
             from telegram import Update
             from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -66,8 +67,6 @@ class OpenClawBridge:
                 msg = update.message.text
                 if not msg: return
                 await update.message.chat.send_action("typing")
-
-                # İşle
                 try:
                     from altyapi.kesici import kesici
                     yerel = kesici.tani(msg)
@@ -75,7 +74,6 @@ class OpenClawBridge:
                         await update.message.reply_text(yerel)
                         return
                 except: pass
-
                 try:
                     from altyapi.litellm_bridge import litellm
                     r = litellm.chat([{"role": "user", "content": msg}], max_tokens=300)
@@ -83,7 +81,6 @@ class OpenClawBridge:
                         await update.message.reply_text(r["content"][:1000])
                         return
                 except: pass
-
                 await update.message.reply_text("İşleniyor...")
 
             async def komut_saat(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -101,16 +98,17 @@ class OpenClawBridge:
                 except:
                     await update.message.reply_text("Sistem durumu alınamadı.")
 
-            # Build app
-            self._app = Application.builder().token(self._token).build()
-            self._app.add_handler(CommandHandler("start", start))
-            self._app.add_handler(CommandHandler("saat", komut_saat))
-            self._app.add_handler(CommandHandler("tarih", komut_tarih))
-            self._app.add_handler(CommandHandler("durum", komut_durum))
-            self._app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+            async def main():
+                self._app = Application.builder().token(self._token).build()
+                self._app.add_handler(CommandHandler("start", start))
+                self._app.add_handler(CommandHandler("saat", komut_saat))
+                self._app.add_handler(CommandHandler("tarih", komut_tarih))
+                self._app.add_handler(CommandHandler("durum", komut_durum))
+                self._app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+                print("[OpenClaw] Telegram bot dinlemede...")
+                await self._app.run_polling()
 
-            print("[OpenClaw] Telegram bot dinlemede...")
-            self._app.run_polling()
+            asyncio.run(main())
         except Exception as e:
             print(f"[OpenClaw] Telegram hatası: {e}")
             self._ready = False
