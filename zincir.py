@@ -278,53 +278,54 @@ def zincir_kod(gorev: str):
 # ═══════════════════════════════════════════════════════════
 
 def _konus(metin: str):
-    """Metni seslendir. F5-TTS gerçek sentez → espeak fallback."""
+    """Metni seslendir. XTTS → F5-TTS → espeak."""
     if not metin:
         return
 
-    # F5-TTS gerçek ses sentezi dene
+    # 1. XTTS dene (hafif, hizli)
+    try:
+        from mudahale.xtts_bridge import get_xtts
+        xtts = get_xtts()
+        if xtts.hazir_mi():
+            r = xtts.konus(metin)
+            if r["status"] == "ok":
+                print(f"🔊 XTTS: {metin[:80]}...")
+                try:
+                    import soundfile as sf, sounddevice as sd
+                    wav, sr = sf.read(r["file"])
+                    sd.play(wav, sr); sd.wait()
+                except: pass
+                bus.publish(Event(EventType.SPEECH_SYNTHESIS_COMPLETED, {"text": metin[:100]}))
+                return
+    except Exception as e:
+        print(f"  XTTS yok: {str(e)[:60]}")
+
+    # 2. F5-TTS dene
     try:
         from altyapi.vram_manager import vram
-        import torch
-
-        def _f5_sentez():
-            from f5_tts.api import F5TTS
-            return F5TTS(model="F5TTS_v1_Base")
-
-        with vram.acquire("f5tts", _f5_sentez) as f5:
+        def _f5(): from f5_tts.api import F5TTS; return F5TTS(model="F5TTS_v1_Base")
+        with vram.acquire("f5tts", _f5) as f5:
             import tempfile, os
             tmp = os.path.join(tempfile.gettempdir(), "dv_tts_out.wav")
-            f5.infer(
-                ref_file=None,  # zero-shot, ref ses yok
-                ref_text="",
-                gen_text=metin[:500],
-                file_wave=tmp,
-                nfe_step=16,
-            )
-            # Oynat
+            f5.infer(ref_file=None, ref_text="", gen_text=metin[:500], file_wave=tmp, nfe_step=16)
             try:
-                import soundfile as sf
-                import sounddevice as sd
-                wav, sr = sf.read(tmp)
-                sd.play(wav, sr)
-                sd.wait()
-            except Exception:
-                pass
+                import soundfile as sf, sounddevice as sd
+                wav, sr = sf.read(tmp); sd.play(wav, sr); sd.wait()
+            except: pass
             print(f"🔊 F5-TTS: {metin[:80]}...")
             bus.publish(Event(EventType.SPEECH_SYNTHESIS_COMPLETED, {"text": metin[:100]}))
             return
     except Exception as e:
-        print(f"  F5-TTS hatası (espeak'e düşüyor): {str(e)[:100]}")
+        print(f"  F5-TTS yok: {str(e)[:60]}")
 
-    # espeak fallback
+    # 3. espeak fallback
     try:
         import subprocess
-        subprocess.run(["espeak-ng", "-v", "tr", metin[:500]],
-                       timeout=30, capture_output=True)
+        subprocess.run(["espeak-ng", "-v", "tr", metin[:500]], timeout=30, capture_output=True)
         print(f"🔊 espeak: {metin[:80]}...")
         bus.publish(Event(EventType.SPEECH_SYNTHESIS_COMPLETED, {"text": metin[:100]}))
     except Exception:
-        print(f"🔇 Seslendirme başarısız: {metin[:100]}")
+        print(f"🔇 Ses yok: {metin[:100]}")
 
 
 # ═══════════════════════════════════════════════════════════
