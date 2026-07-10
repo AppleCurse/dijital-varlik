@@ -41,39 +41,89 @@ class ConnectionManager:
 mgr = ConnectionManager()
 
 
-def otonom_isle(komut: str) -> str:
-    """Komutu otonom.py ile işle."""
-    komut_lower = komut.lower().strip()
+def otonom_isle(komut: str) -> dict:
+    """Komutu işle, {type, data, source} döndür."""
+    k = komut.lower().strip()
 
-    # Basit cevaplar (9Router'siz, anında)
-    basit_cevaplar = {
+    # ── DURUM ──
+    if k in ("durum", "status", "sistem"):
+        return {"type": "status", "data": _sistem_durumu(), "source": "sistem"}
+
+    # ── BASİT CEVAPLAR ──
+    basit = {
         "saat": lambda: f"Saat: {datetime.now().strftime('%H:%M:%S')}",
         "tarih": lambda: f"Tarih: {datetime.now().strftime('%d.%m.%Y')}",
         "merhaba": lambda: "Merhaba Mösyö. Dijital Varlık Nano Matris emrinizde.",
-        "nasılsın": lambda: "Tüm sistemler nominal. Mahkeme aktif, Kesici tetikte. Emrinizi bekliyorum.",
-        "kimsin": lambda: "Ben Dijital Varlık — 4 Mahkeme rolü, 6 zincir, 75 AI model ile çalışan otonom organizma.",
-        "yardım": lambda: "KOMUTLAR: saat, tarih, ara [konu], kod [görev], web [url], yüz [fotoğraf], ekran",
+        "nasılsın": lambda: "Tüm sistemler nominal. Mahkeme aktif, Kesici tetikte.",
+        "kimsin": lambda: "Dijital Varlık — otonom AI organizması. 4 Mahkeme rolü, 6 zincir, 75 model.",
+        "yardım": lambda: "KOMUTLAR: saat, tarih, ara [konu], kod [görev], web [url], yüz [foto], ekran, durum",
         "selam": lambda: "Selam Mösyö. Nano Matris bağlantısı stabil.",
-        "durum": lambda: _sistem_durumu(),
     }
-    for k, v in basit_cevaplar.items():
-        if komut_lower == k or komut_lower.startswith(k):
-            return v()
+    for anahtar, fn in basit.items():
+        if k == anahtar or k.startswith(anahtar):
+            return {"type": "response", "data": fn(), "source": "kesici"}
 
-    # 9Router + smolagents zinciri
+    # ── KESİCİ ──
     try:
         from altyapi.kesici import kesici
         local = kesici.tani(komut)
-        if local: return local
+        if local: return {"type": "response", "data": local, "source": "kesici"}
     except: pass
 
+    # ── KOD ──
+    if any(kw in k for kw in ["kod", "python", "script", "hesapla", "topla", "yaz"]):
+        return _zincir("kod", komut)
+
+    # ── WEB ──
+    if any(kw in k for kw in ["site", "web", "http", "başlık", "example", "gez", "tıkla"]):
+        return _zincir("web", komut)
+
+    # ── GÖRÜ ──
+    if any(kw in k for kw in ["ekran", "görüntü", "grafik", "analiz et"]):
+        return _zincir("goru", komut)
+
+    # ── YÜZ ──
+    if any(kw in k for kw in ["yüz", "fotoğraf", "resim", "tanı"]):
+        return {"type": "response", "data": "Yüz tanıma için dashboard'dan fotoğraf yükleyin: http://localhost:9998", "source": "sistem"}
+
+    # ── ARAMA / BİLGİ ──
+    if any(kw in k for kw in ["ara", "nedir", "kimdir", "araştır", "wikipedia"]):
+        try:
+            from mudahale.atom_bridge import get_atom
+            atom = get_atom()
+            r = atom.web_arama(komut)
+            if r.get("status") == "ok":
+                return {"type": "response", "data": str(r.get("sonuc",""))[:500], "source": "atom"}
+        except: pass
+
+    # ── LLM (9Router) ──
     try:
         from altyapi.litellm_bridge import litellm
         r = litellm.chat([{"role":"user","content":komut}], max_tokens=300)
-        if r and r.get("content"): return r["content"][:500]
+        if r and r.get("content"):
+            return {"type": "response", "data": r["content"][:500], "source": r.get("model","llm")}
     except: pass
 
-    return f"Komut işlendi: {komut[:100]}. Sistem yanıt bekliyor."
+    return {"type": "response", "data": f"Komut alındı: {komut[:100]}", "source": "sistem"}
+
+
+def _zincir(tip: str, komut: str) -> dict:
+    """Zincirleri subprocess ile çalıştır."""
+    try:
+        from zincir import zincir_kod, zincir_ses, zincir_goru
+        if tip == "kod":
+            r = zincir_kod(komut)
+        elif tip == "web":
+            r = zincir_ses(komut)
+        elif tip == "goru":
+            r = zincir_goru()
+        else:
+            r = zincir_ses(komut)
+
+        msg = str(r)[:500] if isinstance(r, str) else str(r.get("message",""))[:500]
+        return {"type": "response", "data": msg or "Tamamlandı", "source": tip}
+    except Exception as e:
+        return {"type": "response", "data": f"Hata: {str(e)[:200]}", "source": "hata"}
 
 
 def _sistem_durumu() -> str:
@@ -84,14 +134,23 @@ def _sistem_durumu() -> str:
         parts.append("9router: AKTIF" if r.status_code == 200 else "9router: KAPALI")
     except: parts.append("9router: KAPALI")
     try:
+        import requests
+        r = requests.get("http://localhost:3004/json/version", timeout=2)
+        parts.append("Browser: AKTIF" if r.status_code == 200 else "Browser: KAPALI")
+    except: parts.append("Browser: KAPALI")
+    try:
         import torch
         if torch.cuda.is_available():
-            parts.append(f"GPU: {torch.cuda.get_device_name(0)} ({torch.cuda.get_device_properties(0).total_memory//1024**2}MB)")
+            parts.append(f"GPU: {torch.cuda.get_device_name(0).replace('NVIDIA ','')} ({torch.cuda.get_device_properties(0).total_memory//1024**2}MB)")
     except: pass
     try:
         import psutil
         parts.append(f"RAM: {psutil.virtual_memory().percent:.0f}%")
     except: pass
+    try:
+        from mudahale.deepface_bridge import get_deepface
+        parts.append(f"DeepFace: {'AKTIF' if get_deepface().hazir_mi() else 'YOK'}")
+    except: parts.append("DeepFace: YOK")
     return " | ".join(parts) if parts else "Sistem durumu alınamadı."
 
 
@@ -107,7 +166,11 @@ async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
     await mgr.connect(ws)
     await mgr.send(ws, {"type":"log","source":"sistem","message":"Nano Matris bağlantısı kuruldu."})
-    await mgr.send(ws, {"type":"log","source":"sistem","message":_sistem_durumu()})
+    await mgr.send(ws, {"type":"status","data":_sistem_durumu(),"source":"sistem"})
+    await mgr.send(ws, {"type":"capabilities","data":{
+        "sohbet": True, "kod": True, "web": True, "goru": True,
+        "yuz": True, "arama": True, "ses": True, "hafiza": True
+    }})
 
     try:
         while True:
@@ -125,8 +188,9 @@ async def websocket_endpoint(ws: WebSocket):
             loop = asyncio.get_event_loop()
             sonuc = await loop.run_in_executor(None, otonom_isle, komut)
 
-            await mgr.send(ws, {"type":"response","data":sonuc[:500]})
-            await mgr.send(ws, {"type":"log","source":"otonom","message":sonuc[:150]})
+            await mgr.send(ws, sonuc)
+            await mgr.send(ws, {"type":"log","source":sonuc.get("source","?"),
+                               "message":str(sonuc.get("data",""))[:150]})
 
     except WebSocketDisconnect:
         await mgr.disconnect(ws)
