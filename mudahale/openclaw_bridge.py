@@ -1,18 +1,17 @@
 """
-OpenClaw Bridge — 7/24 Mesajlaşma İstihbaratı.
+OpenClaw Bridge — 7/24 Mesajlaşma İstihbaratı (Raw HTTP API).
 
 Platformlar: Telegram, WhatsApp (Twilio), X (Twitter)
-Şu an aktif: Telegram bot
-
-Kullanım:
-    python mudahale/openclaw_bridge.py  # Telegram bot'u başlat
+Şu an aktif: Telegram bot (raw API, sıfır async sorunu)
 """
-import sys, os, asyncio, threading
+import sys, os, time, json, requests, threading
 from pathlib import Path
 from typing import Optional
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+
+TELEGRAM_API = "https://api.telegram.org/bot"
 
 
 class OpenClawBridge:
@@ -20,10 +19,10 @@ class OpenClawBridge:
 
     def __init__(self):
         self._ready = False
-        self._bot = None
-        self._app = None
-        self._thread = None
         self._token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+        self._offset = 0
+        self._running = False
+        self._thread = None
         if self._token:
             self._ready = True
 
@@ -34,117 +33,92 @@ class OpenClawBridge:
     def token_set(self) -> bool:
         return bool(self._token)
 
+    def _api(self, method: str, data: dict = None) -> dict:
+        try:
+            url = f"{TELEGRAM_API}{self._token}/{method}"
+            r = requests.post(url, json=data, timeout=15) if data else requests.get(url, timeout=15)
+            return r.json()
+        except:
+            return {"ok": False}
+
+    def _send(self, chat_id: int, text: str):
+        self._api("sendMessage", {"chat_id": chat_id, "text": text[:4000]})
+
+    def _islem(self, msg: str) -> str:
+        try:
+            from karar.aspasia import aspasia_kesici
+            yerel = aspasia_kesici(msg)
+            if yerel: return yerel
+        except: pass
+        try:
+            from altyapi.litellm_bridge import litellm
+            from karar.aspasia import aspasia_system_prompt
+            r = litellm.chat([
+                {"role": "system", "content": aspasia_system_prompt()},
+                {"role": "user", "content": msg}
+            ], max_tokens=400)
+            if r and r.get("content"): return r["content"][:1500]
+        except: pass
+        return "Düşüncelerimizi sıraya dizelim Mösyö. Bir an."
+
     def telegram_baslat(self, token: str = None):
-        """Telegram bot'u arka planda başlat."""
-        if token:
-            self._token = token
+        """Telegram bot'u arka planda başlat (polling, raw HTTP)."""
+        if token: self._token = token
         if not self._token:
-            print("[OpenClaw] ❌ TELEGRAM_BOT_TOKEN gerekli. @BotFather'dan al.")
+            print("[OpenClaw] ❌ Token yok.")
             return False
 
         self._ready = True
-        self._thread = threading.Thread(target=self._run_telegram, daemon=True)
+        self._running = True
+        # İlk offset'i al
+        updates = self._api("getUpdates", {"limit": 1, "offset": -1})
+        if updates.get("result"):
+            self._offset = updates["result"][-1]["update_id"] + 1
+
+        self._thread = threading.Thread(target=self._poll_loop, daemon=True)
         self._thread.start()
-        print(f"[OpenClaw] 🟢 Telegram bot başlatıldı")
+        print("[OpenClaw] 🟢 Telegram bot dinlemede (raw HTTP)...", flush=True)
         return True
 
-    def _run_telegram(self):
-        """Telegram bot ana döngüsü (ayrı thread)."""
-        import asyncio
-        try:
-            from telegram import Update
-            from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-
-            async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-                await update.message.reply_text(
-                    "🤖 Dijital Varlık hizmetinizde.\n"
-                    "Sohbet edebilir, kod yazdırabilir, web'de gezinebilir,\n"
-                    "görüntü analiz ettirebilir, yüz tanıma yapabilirsiniz.\n\n"
-                    "Komutlar: /saat /tarih /ara /kod /durum"
-                )
-
-            async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-                msg = update.message.text
-                if not msg: return
-                await update.message.chat.send_action("typing")
-                try:
-                    from karar.aspasia import aspasia_kesici, aspasia_format, aspasia_system_prompt
-                    yerel = aspasia_kesici(msg)
-                    if yerel:
-                        await update.message.reply_text(yerel)
-                        return
-                except: pass
-                try:
-                    from altyapi.litellm_bridge import litellm
-                    from karar.aspasia import aspasia_system_prompt
-                    sistem = aspasia_system_prompt()
-                    r = litellm.chat([
-                        {"role": "system", "content": sistem},
-                        {"role": "user", "content": msg}
-                    ], max_tokens=400)
-                    if r and r.get("content"):
-                        await update.message.reply_text(r["content"][:1500])
-                        return
-                except: pass
-                await update.message.reply_text("Düşüncelerimizi sıraya dizelim Mösyö. Bir an.")
-
-            async def komut_saat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-                from datetime import datetime
-                await update.message.reply_text(f"Saat {datetime.now().strftime('%H:%M')}. Zaman stratejinin en sessiz ortağıdır.")
-
-            async def komut_tarih(update: Update, context: ContextTypes.DEFAULT_TYPE):
-                from datetime import datetime
-                await update.message.reply_text(f"{datetime.now().strftime('%d.%m.%Y')}. Takvimler değişir, sorular kalır.")
-
-            async def komut_durum(update: Update, context: ContextTypes.DEFAULT_TYPE):
-                try:
-                    from wsl_backend.main import _sistem_durumu
-                    await update.message.reply_text(_sistem_durumu())
-                except:
-                    await update.message.reply_text("Sistem durumu alınamadı.")
-
-            async def main():
-                self._app = Application.builder().token(self._token).build()
-                self._app.add_handler(CommandHandler("start", start))
-                self._app.add_handler(CommandHandler("saat", komut_saat))
-                self._app.add_handler(CommandHandler("tarih", komut_tarih))
-                self._app.add_handler(CommandHandler("durum", komut_durum))
-                self._app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-                print("[OpenClaw] Telegram bot dinlemede...")
-                await self._app.run_polling()
-
-            asyncio.run(main())
-        except Exception as e:
-            print(f"[OpenClaw] Telegram hatası: {e}")
-            self._ready = False
+    def _poll_loop(self):
+        while self._running:
+            try:
+                updates = self._api("getUpdates", {"offset": self._offset, "timeout": 10})
+                if updates.get("ok") and updates.get("result"):
+                    for upd in updates["result"]:
+                        self._offset = upd["update_id"] + 1
+                        msg = upd.get("message", {})
+                        text = msg.get("text", "")
+                        chat_id = msg.get("chat", {}).get("id")
+                        if text and chat_id:
+                            print(f"[OpenClaw] 📩 {text[:80]}", flush=True)
+                            yanit = self._islem(text)
+                            self._send(chat_id, yanit)
+            except Exception as e:
+                print(f"[OpenClaw] Poll hatası: {e}", flush=True)
+                time.sleep(5)
 
     def durdur(self):
-        if self._app:
-            self._app.stop()
+        self._running = False
         print("[OpenClaw] Durduruldu.")
 
 
-# Global instance
 _openclaw: Optional[OpenClawBridge] = None
 
 def get_openclaw() -> OpenClawBridge:
     global _openclaw
-    if _openclaw is None:
-        _openclaw = OpenClawBridge()
+    if _openclaw is None: _openclaw = OpenClawBridge()
     return _openclaw
 
 
 if __name__ == "__main__":
     token = sys.argv[1] if len(sys.argv) > 1 else os.getenv("TELEGRAM_BOT_TOKEN", "")
     if not token:
-        print("Kullanım: python mudahale/openclaw_bridge.py <BOT_TOKEN>")
-        print("Token al: https://t.me/BotFather → /newbot")
+        print("Kullanım: python mudahale/openclaw_bridge.py <TOKEN>")
         sys.exit(1)
-
     oc = OpenClawBridge()
     oc.telegram_baslat(token)
     try:
-        while True:
-            import time; time.sleep(1)
+        while True: time.sleep(1)
     except KeyboardInterrupt:
         oc.durdur()
