@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Dijital Varlık</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:#0a0a0f;color:#e0e0e0;height:100dvh;display:flex;flex-direction:column}
+header{background:#111;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222}
+header h1{font-size:18px;color:#7c3aed}
+.status-dots{display:flex;gap:10px;font-size:11px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+.dot.on{background:#22c55e}.dot.off{background:#ef4444}
+main{flex:1;overflow-y:auto;padding:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:12px}
+.card{background:#16161e;border:1px solid #222;border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:.2s}
+.card:hover{background:#1e1e2e;border-color:#7c3aed}
+.card .icon{font-size:28px;margin-bottom:6px}
+.card .label{font-size:12px;color:#999}
+.chat-area{background:#16161e;border:1px solid #222;border-radius:10px;padding:12px;max-height:300px;overflow-y:auto;margin-bottom:8px;min-height:100px}
+.chat-msg{margin:6px 0;padding:8px 12px;border-radius:8px;max-width:85%;word-break:break-word;font-size:14px}
+.chat-msg.user{background:#7c3aed;color:#fff;margin-left:auto}
+.chat-msg.bot{background:#222;color:#ddd}
+.input-row{display:flex;gap:8px}
+.input-row input{flex:1;background:#16161e;border:1px solid #333;border-radius:8px;padding:12px;color:#fff;font-size:14px;outline:none}
+.input-row input:focus{border-color:#7c3aed}
+.input-row button{background:#7c3aed;border:none;border-radius:8px;padding:12px 20px;color:#fff;font-weight:bold;cursor:pointer;font-size:14px}
+footer{padding:8px 16px;font-size:10px;color:#444;text-align:center;border-top:1px solid#222}
+.loading{opacity:.5;pointer-events:none}
+</style>
+</head>
+<body>
+<header>
+<h1>🤖 Dijital Varlık</h1>
+<div class="status-dots" id="status"></div>
+</header>
+<main>
+<div class="cards">
+<div class="card" onclick="send('merhaba nasılsın')"><div class="icon">💬</div><div class="label">Sohbet</div></div>
+<div class="card" onclick="send('saat kaç')"><div class="icon">🕐</div><div class="label">Saat/Tarih</div></div>
+<div class="card" onclick="send('python ile 1den 10a kadar topla')"><div class="icon">💻</div><div class="label">Kod Yaz</div></div>
+<div class="card" onclick="send('example.com sitesinin başlığını getir')"><div class="icon">🌐</div><div class="label">Web'de Gez</div></div>
+<div class="card" onclick="send('python nedir')"><div class="icon">📚</div><div class="label">Araştır</div></div>
+<div class="card" onclick="send('ekran görüntüsünü analiz et')"><div class="icon">👁️</div><div class="label">Görü Analizi</div></div>
+</div>
+<div class="chat-area" id="chat"></div>
+<div class="input-row">
+<input id="msg" placeholder="Bir şey söyle..." onkeydown="if(event.key==='Enter')send()" autofocus>
+<button onclick="send()">Gönder</button>
+</div>
+</main>
+<footer>Dijital Varlık · Tüm yetenekler tek arayüzde</footer>
+<script>
+async function send(msg){
+  msg = msg || document.getElementById('msg').value;
+  if(!msg.trim()) return;
+  addMsg(msg,'user');
+  document.getElementById('msg').value='';
+  document.querySelector('main').classList.add('loading');
+  try{
+    let r = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+    let d = await r.json();
+    addMsg(d.answer||'(cevap yok)','bot');
+  }catch(e){addMsg('Bağlantı hatası','bot')}
+  document.querySelector('main').classList.remove('loading');
+}
+function addMsg(txt,cls){
+  let d=document.createElement('div');d.className='chat-msg '+cls;d.textContent=txt;
+  document.getElementById('chat').appendChild(d);
+  document.getElementById('chat').scrollTop=document.getElementById('chat').scrollHeight;
+}
+async function checkStatus(){
+  try{
+    let r=await fetch('/api/status');let s=await r.json();
+    document.getElementById('status').innerHTML=
+      `<span><span class="dot ${s['9router']=='ON'?'on':'off'}"></span>9router</span>
+       <span><span class="dot ${s['browser']=='ON'?'on':'off'}"></span>Web</span>
+       <span>🖥️ ${s['gpu']||'?'}</span>
+       <span>📡 ${s['ram']||'?'}</span>`;
+  }catch(e){}
+}
+checkStatus();setInterval(checkStatus,10000);
+</script>
+</body>
+</html>
