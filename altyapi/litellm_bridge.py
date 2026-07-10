@@ -73,6 +73,7 @@ class LiteLLMBridge:
                 "messages": messages,
                 "temperature": temperature,
                 "max_tokens": max_tokens,
+                "stream": False,
             }
             if response_format:
                 payload["response_format"] = response_format

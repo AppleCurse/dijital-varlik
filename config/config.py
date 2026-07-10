@@ -10,6 +10,8 @@ class Config:
 
     MAHKEME_MODEL = os.getenv("MAHKEME_MODEL", "dijitalvarlik")
     FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "mycombo")
+    KOD_MODEL = os.getenv("KOD_MODEL", "deepseekcombo")
+    WEB_MODEL = os.getenv("WEB_MODEL", "mycombo")
 
     # Servisler
     BROWSERLESS_URL = os.getenv("BROWSERLESS_URL", "http://localhost:3004")

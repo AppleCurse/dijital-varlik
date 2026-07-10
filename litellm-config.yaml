@@ -1,18 +1,23 @@
 model_list:
-  - model_name: "9router"
-    litellm_params:
-      model: "openai/dijitalvarlik"
-      api_base: "http://172.30.0.10:20128/v1"
-      api_key: "sk-5762d1405cedb9c7-vtowrm-d6ad8046"
-  - model_name: "9router-mycombo"
-    litellm_params:
-      model: "openai/mycombo"
-      api_base: "http://172.30.0.10:20128/v1"
-      api_key: "sk-5762d1405cedb9c7-vtowrm-d6ad8046"
-  - model_name: "9router-deepseek"
+  # Deepseek combo: akilli (mahkeme, kod)
+  - model_name: "deepseekcombo"
     litellm_params:
       model: "openai/deepseekcombo"
-      api_base: "http://172.30.0.10:20128/v1"
+      api_base: "http://172.17.0.1:20128/v1"
+      api_key: "sk-5762d1405cedb9c7-vtowrm-d6ad8046"
+
+  # Mycombo: hizli (web, browser)
+  - model_name: "mycombo"
+    litellm_params:
+      model: "openai/mycombo"
+      api_base: "http://172.17.0.1:20128/v1"
+      api_key: "sk-5762d1405cedb9c7-vtowrm-d6ad8046"
+
+  # Dijitalvarlik: genel (fallback)
+  - model_name: "dijitalvarlik"
+    litellm_params:
+      model: "openai/dijitalvarlik"
+      api_base: "http://172.17.0.1:20128/v1"
       api_key: "sk-5762d1405cedb9c7-vtowrm-d6ad8046"
 
 general_settings:

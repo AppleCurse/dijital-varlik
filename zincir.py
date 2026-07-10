@@ -161,6 +161,70 @@ def zincir_goru():
 
 
 # ═══════════════════════════════════════════════════════════
+# ZİNCİR 4: YÜZ TANIMA → ANALİZ → SES
+# ═══════════════════════════════════════════════════════════
+
+def zincir_yuz(image_path: str = None, action: str = "analyze", db_path: str = None):
+    """
+    Yüz tanıma/analiz zinciri.
+
+    Kullanım:
+        python zincir.py yuz analyze /path/to/foto.jpg
+        python zincir.py yuz verify /path/1.jpg /path/2.jpg
+        python zincir.py yuz find /path/arama.jpg /path/veritabani/
+    """
+    from mudahale.deepface_bridge import get_deepface
+
+    df = get_deepface()
+    if not df.hazir_mi():
+        _konus("Yüz tanıma motoru hazır değil.")
+        return {"status": "error"}
+
+    if action == "analyze":
+        print(f"👤 Yüz analizi: {image_path}")
+        result = df.analyze(image_path)
+        if result["status"] == "ok":
+            data = result["data"]
+            info_parts = []
+            if "age" in data: info_parts.append(f"Yaş: {data['age']}")
+            if "gender" in data: info_parts.append(f"Cinsiyet: {data.get('dominant_gender', '?')}")
+            if "emotion" in data: info_parts.append(f"Duygu: {data.get('dominant_emotion', '?')}")
+            if "race" in data: info_parts.append(f"Irk: {data.get('dominant_race', '?')}")
+            msg = ". ".join(info_parts)
+        else:
+            msg = f"Analiz başarısız: {result['message'][:100]}"
+
+    elif action == "verify":
+        img2 = db_path  # verify için ikinci arg db_path olarak geçer
+        print(f"👤 Yüz doğrulama: {image_path} vs {img2}")
+        result = df.verify(image_path, img2)
+        if result["status"] == "ok":
+            msg = "Aynı kişi." if result["verified"] else "Farklı kişiler."
+            msg += f" (benzerlik: {result['distance']:.2f})"
+        else:
+            msg = f"Doğrulama başarısız: {result['message'][:100]}"
+
+    elif action == "find":
+        print(f"🔍 Yüz arama: {image_path} → {db_path}")
+        result = df.find(image_path, db_path)
+        if result["status"] == "ok":
+            if result["count"] > 0:
+                msg = f"{result['count']} eşleşme bulundu. En yakın: {result['matches'][0]['identity']}"
+            else:
+                msg = "Eşleşme bulunamadı."
+        else:
+            msg = f"Arama başarısız: {result['message'][:100]}"
+
+    else:
+        msg = f"Bilinmeyen işlem: {action}"
+
+    print(f"✅ {msg}")
+    _konus(msg)
+    memory.store(f"[zincir-yuz] {action} → {msg[:100]}", scope="semantic")
+    return {"status": "ok", "message": msg}
+
+
+# ═══════════════════════════════════════════════════════════
 # ZİNCİR 3: KOD → YAZ → ÇALIŞTIR → SES
 # ═══════════════════════════════════════════════════════════
 
@@ -269,23 +333,32 @@ def _konus(metin: str):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Kullanım: python zincir.py [ses|goru|kod] [metin]")
+        print("Kullanım: python zincir.py [ses|goru|kod|yuz] [argumanlar]")
         print("  python zincir.py ses 'bugün haberlerde ne var'")
         print("  python zincir.py goru")
         print("  python zincir.py kod 'bana web scraper yaz'")
+        print("  python zincir.py yuz analyze fotograflar/ben.jpg")
+        print("  python zincir.py yuz verify foto1.jpg foto2.jpg")
+        print("  python zincir.py yuz find arama.jpg veritabani/")
         sys.exit(1)
 
     komut = sys.argv[1]
-    metin = sys.argv[2] if len(sys.argv) > 2 else None
 
     vram.evict_all()
 
     if komut == "ses":
+        metin = sys.argv[2] if len(sys.argv) > 2 else None
         zincir_ses(metin)
     elif komut == "goru":
         zincir_goru()
     elif komut == "kod":
-        zincir_kod(metin or input("Görev: "))
+        metin = sys.argv[2] if len(sys.argv) > 2 else input("Görev: ")
+        zincir_kod(metin)
+    elif komut == "yuz":
+        action = sys.argv[2] if len(sys.argv) > 2 else "analyze"
+        img = sys.argv[3] if len(sys.argv) > 3 else None
+        extra = sys.argv[4] if len(sys.argv) > 4 else None
+        zincir_yuz(img, action, extra)
     else:
         print(f"Bilinmeyen komut: {komut}")
 
