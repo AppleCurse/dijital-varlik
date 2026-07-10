@@ -21,20 +21,25 @@ else
     echo "   ⚠️  9router KAPALI! Windows'ta başlat: Hide to Tray"
 fi
 
-# Dashboard
-echo ">> Dashboard başlatılıyor (port 9998)..."
+# Dashboard + WebSocket
+echo ">> Nano Matris başlatılıyor (port 9998)..."
 python3 dashboard/server.py 9998 &
 DASH_PID=$!
+
+echo ">> WebSocket backend başlatılıyor (port 8000)..."
+python3 wsl_backend/main.py 8000 &
+WS_PID=$!
 sleep 1
 
 echo ""
 echo "============================================"
 echo "  HAZIR!"
-echo "  Dashboard: http://localhost:9998"
-echo "  VS Code:   http://localhost:8080"
-echo "  Chat:      http://localhost:3000"
+echo "  Nano Matris: http://localhost:8000"
+echo "  Dashboard:   http://localhost:9998"
+echo "  VS Code:     http://localhost:8080"
+echo "  Chat:        http://localhost:3000"
 echo "============================================"
-echo "  Çıkmak için: kill $DASH_PID"
+echo "  Çıkmak için: kill $DASH_PID $WS_PID"
 echo "============================================"
 
-wait $DASH_PID
+wait $DASH_PID $WS_PID

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OTONOM KOR - NANO MATRIS</title>
+<style>*{margin:0;padding:0;box-sizing:border-box;overflow:hidden;font-family:'Courier New',monospace;user-select:none}body{background:#000;color:#10b981;height:100vh;width:100vw}#canvas-container{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}#ui-layer{position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;pointer-events:none;display:flex;flex-direction:column;justify-content:flex-end;padding:40px}#command-line{display:flex;align-items:center;pointer-events:auto;opacity:.7;transition:opacity .3s;width:50%}#command-line:hover,#command-line:focus-within{opacity:1}#cmd-prefix{font-weight:bold;margin-right:15px;font-size:14px;text-shadow:0 0 5px #10b981}#cmd-input{background:transparent;border:none;border-bottom:1px solid rgba(16,185,129,.3);color:#f4f4f5;font-size:14px;width:100%;outline:none;padding:5px 0;text-transform:uppercase;letter-spacing:1px}#cmd-input:focus{border-bottom:1px solid #10b981}#hologram-text{position:absolute;top:50px;left:50px;width:420px;color:#a1a1aa;font-size:11px;text-transform:uppercase;letter-spacing:1px;line-height:1.5;pointer-events:none;opacity:0;transition:opacity .5s}.holo-title{color:#10b981;font-weight:bold;margin-bottom:10px;border-bottom:1px solid rgba(16,185,129,.3);display:inline-block;padding-bottom:2px}#sys-status{position:absolute;top:50px;right:50px;text-align:right;font-size:10px;color:#52525b;pointer-events:none}.status-on{color:#10b981;text-shadow:0 0 3px #10b981}.status-off{color:#ef4444;text-shadow:0 0 3px #ef4444}#log-strip{position:absolute;bottom:100px;left:40px;width:50%;max-height:140px;overflow-y:auto;font-size:10px;color:#52525b;pointer-events:none}#log-strip div{margin-bottom:2px}#log-strip span{color:#10b981}</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div id="ui-layer">
+<div id="hologram-text"><div class="holo-title" id="holo-title">MAHKEME PROTOKOLU</div><div id="holo-content">Beklemede...</div></div>
+<div id="sys-status">BAGLANTI: <span class="status-off" id="stat-conn">BEKLENIYOR</span><br>MAHKEME: <span class="status-on">AKTIF</span><br>KESICI: <span class="status-on">< 1MS</span><br>NANO: <span class="status-on">STABIL</span></div>
+<div id="log-strip"></div>
+<div id="command-line"><span id="cmd-prefix">MOSYO ></span><input type="text" id="cmd-input" autocomplete="off" spellcheck="false"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script>
+const C=document.getElementById('canvas-container'),S=new THREE.Scene();S.background=new THREE.Color(0);const cam=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,1000);cam.position.z=150;const R=new THREE.WebGLRenderer({antialias:!0,alpha:!0});R.setSize(innerWidth,innerHeight);C.appendChild(R.domElement);
+const N=10000,G=new THREE.BufferGeometry(),P=new Float32Array(N*3),T=new Float32Array(N*3),O=new Float32Array(N*3);
+for(let i=0;i<N*3;i+=3){let r=40*Math.cbrt(Math.random()),t=Math.random()*2*Math.PI,p=Math.acos(2*Math.random()-1);P[i]=r*Math.sin(p)*Math.cos(t);P[i+1]=r*Math.sin(p)*Math.sin(t);P[i+2]=r*Math.cos(p);O[i]=P[i];O[i+1]=P[i+1];O[i+2]=P[i+2];T[i]=P[i];T[i+1]=P[i+1];T[i+2]=P[i+2]}
+G.setAttribute('position',new THREE.BufferAttribute(P,3));
+const M=new THREE.PointsMaterial({color:0x10b981,size:.5,transparent:!0,opacity:.8,blending:THREE.AdditiveBlending}),Q=new THREE.Points(G,M);S.add(Q);
+function morph(s){let p=G.attributes.position.array,i=0;if(s==='browser')for(let j=0;j<N;j++){T[i++]=(Math.random()-.5)*200;T[i++]=(Math.random()-.5)*150;T[i++]=(Math.random()-.5)*20}else for(let j=0;j<N*3;j++)T[j]=O[j];gsap.to(p,{endArray:T,duration:1.5,ease:'power3.inOut',onUpdate:()=>{G.attributes.position.needsUpdate=!0}})}
+const HD=document.getElementById('hologram-text'),HT=document.getElementById('holo-title'),HC=document.getElementById('holo-content');let tT=null;
+function showH(txt){clearTimeout(tT);HT.innerText='MAHKEME_KONSENSUSU';HC.innerText='';HD.style.opacity=1;let i=0;function tw(){if(i<txt.length){HC.innerHTML+=txt.charAt(i);i++;tT=setTimeout(tw,15)}}tw()}
+function hideH(){HD.style.opacity=0}
+const LS=document.getElementById('log-strip');
+function pL(src,msg){let d=document.createElement('div');d.innerHTML='<span>['+src.toUpperCase()+']</span> '+msg;LS.appendChild(d);while(LS.children.length>6)LS.removeChild(LS.firstChild)}
+const CL=new THREE.Clock();function anim(){requestAnimationFrame(anim);let t=CL.getElapsedTime();Q.rotation.y=t*.1;Q.rotation.x=t*.05;R.render(S,cam)}anim();
+addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();R.setSize(innerWidth,innerHeight)});
+addEventListener('mousemove',e=>{gsap.to(Q.rotation,{x:-(e.clientY/innerHeight)*1+.5,y:(e.clientX/innerWidth)*1-.5,duration:2})});
+const SC=document.getElementById('stat-conn');let ws=null,rt=null;
+function conn(){ws=new WebSocket('ws://'+location.host+'/ws');ws.onopen=()=>{SC.textContent='BAGLI';SC.className='status-on';pL('sistem','Baglanti kuruldu')};ws.onclose=()=>{SC.textContent='KOPTU';SC.className='status-off';clearTimeout(rt);rt=setTimeout(conn,3000)};ws.onerror=()=>{SC.textContent='HATA';SC.className='status-off'};ws.onmessage=e=>{let p=JSON.parse(e.data);if(p.type==='log'){pL(p.source,p.message);if(p.source==='otonom'&&p.message.includes('web'))morph('browser')}else if(p.type==='response')showH(p.data)}}
+conn();
+function send(k){if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'command',data:k}));else showH('Baglanti yok')}
+const CI=document.getElementById('cmd-input');CI.focus();CI.addEventListener('keypress',e=>{if(e.key==='Enter'){let v=CI.value.trim();if(!v)return;if(v.includes('web')||v.includes('ara'))morph('browser');else if(v.includes('kapat')||v.includes('don')){morph('idle');hideH()}send(v);CI.value=''}})
+</script>
+</body>
+</html>
