@@ -68,28 +68,33 @@ class OpenClawBridge:
                 if not msg: return
                 await update.message.chat.send_action("typing")
                 try:
-                    from altyapi.kesici import kesici
-                    yerel = kesici.tani(msg)
+                    from karar.aspasia import aspasia_kesici, aspasia_format, aspasia_system_prompt
+                    yerel = aspasia_kesici(msg)
                     if yerel:
                         await update.message.reply_text(yerel)
                         return
                 except: pass
                 try:
                     from altyapi.litellm_bridge import litellm
-                    r = litellm.chat([{"role": "user", "content": msg}], max_tokens=300)
+                    from karar.aspasia import aspasia_system_prompt
+                    sistem = aspasia_system_prompt()
+                    r = litellm.chat([
+                        {"role": "system", "content": sistem},
+                        {"role": "user", "content": msg}
+                    ], max_tokens=400)
                     if r and r.get("content"):
-                        await update.message.reply_text(r["content"][:1000])
+                        await update.message.reply_text(r["content"][:1500])
                         return
                 except: pass
-                await update.message.reply_text("İşleniyor...")
+                await update.message.reply_text("Düşüncelerimizi sıraya dizelim Mösyö. Bir an.")
 
             async def komut_saat(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 from datetime import datetime
-                await update.message.reply_text(f"Saat: {datetime.now().strftime('%H:%M:%S')}")
+                await update.message.reply_text(f"Saat {datetime.now().strftime('%H:%M')}. Zaman stratejinin en sessiz ortağıdır.")
 
             async def komut_tarih(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 from datetime import datetime
-                await update.message.reply_text(f"Tarih: {datetime.now().strftime('%d.%m.%Y')}")
+                await update.message.reply_text(f"{datetime.now().strftime('%d.%m.%Y')}. Takvimler değişir, sorular kalır.")
 
             async def komut_durum(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 try:
