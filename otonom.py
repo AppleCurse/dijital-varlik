@@ -117,6 +117,11 @@ class OtonomDijitalVarlik:
             print(f"⚡ Kesici: {yerel}")
             return yerel
 
+        # ATOM: wikipedia/search (9Router'siz)
+        atom_sonuc = self._atom_ara(metin)
+        if atom_sonuc:
+            return atom_sonuc
+
         # Sınıflandır ve zincirle
         tip = siniflandir(metin)
 
@@ -144,6 +149,22 @@ class OtonomDijitalVarlik:
         """Seslendir."""
         from zincir import _konus
         _konus(metin)
+
+    def _atom_ara(self, metin: str) -> str | None:
+        """ATOM Wikipedia aramasi (9Router'siz). Basit bilgi sorularinda kullan."""
+        ara_kelimeler = ["nedir", "kimdir", "ne demek", "hakkinda", "hakkında",
+                         "ara", "search", "wikipedia", "wiki", "bilgi"]
+        if not any(k in metin.lower() for k in ara_kelimeler):
+            return None
+        try:
+            from mudahale.atom_bridge import get_atom
+            atom = get_atom()
+            sonuc = atom.web_arama(metin)
+            if sonuc.get("status") == "ok":
+                return str(sonuc.get("sonuc", ""))[:500]
+        except Exception:
+            pass
+        return None
 
     def calistir(self, once: str = None):
         """Ana döngü."""
