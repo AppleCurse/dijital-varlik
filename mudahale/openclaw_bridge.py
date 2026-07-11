@@ -59,7 +59,12 @@ class OpenClawBridge:
             ], max_tokens=400)
             if r and r.get("content"): return r["content"][:1500]
         except: pass
-        return "Düşüncelerimizi sıraya dizelim Mösyö. Bir an."
+        # Aspasia fallback — 9Router kapalıyken
+        return (
+            "Mösyö, şu an derin düşünce modundayım. "
+            "9Router bağlantım kesik — genellikle Windows tarafında uygulama kapandığında olur. "
+            "Bir kontrol eder misiniz? Sistem hazır olunca hemen devam edeceğim."
+        )
 
     def telegram_baslat(self, token: str = None):
         """Telegram bot'u arka planda başlat (polling, raw HTTP)."""
@@ -90,10 +95,18 @@ class OpenClawBridge:
                         msg = upd.get("message", {})
                         text = msg.get("text", "")
                         chat_id = msg.get("chat", {}).get("id")
-                        if text and chat_id:
-                            print(f"[OpenClaw] 📩 {text[:80]}", flush=True)
-                            yanit = self._islem(text)
-                            self._send(chat_id, yanit)
+                        # Fotoğraf varsa
+                        photo = msg.get("photo", [])
+                        if photo and chat_id:
+                            file_id = photo[-1]["file_id"]
+                            text = f"[GÖRSEL: {file_id}] {text or ''}".strip()
+                        if chat_id:
+                            if text:
+                                print(f"[OpenClaw] 📩 {text[:80]}", flush=True)
+                                yanit = self._islem(text)
+                                self._send(chat_id, yanit)
+                            elif photo:
+                                self._send(chat_id, "Görselinizi aldım Mösyö. Şu an görüntü analizi için Qwen-VL hazır. Görsel hakkında ne öğrenmek istersiniz?")
             except Exception as e:
                 print(f"[OpenClaw] Poll hatası: {e}", flush=True)
                 time.sleep(5)
