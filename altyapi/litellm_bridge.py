@@ -4,6 +4,17 @@ Tüm LLM çağrıları buradan geçer. Rate limiting, fallback, retry yönetir.
 """
 import requests
 import json
+
+def _reasoning_temizle(ham_yanit: str) -> str:
+    """Reasoning model <think> bloklarini ayiklar."""
+    import re
+    for desen in [r'<think>(.*?)</think>', r'<thinking>(.*?)</thinking>', r'<reasoning>(.*?)</reasoning>']:
+        ham_yanit = re.sub(desen, '', ham_yanit, flags=re.DOTALL | re.IGNORECASE)
+    temiz = ham_yanit.strip()
+    if len(temiz) < 5 and len(ham_yanit) > 500:
+        return ""  # reasoning yarida kesilmis, bos cevap
+    return temiz
+
 from typing import Optional
 from config.config import config
 
@@ -90,7 +101,7 @@ class LiteLLMBridge:
                 choice = data["choices"][0]
 
                 return {
-                    "content": choice["message"]["content"],
+                    "content": _reasoning_temizle(choice["message"]["content"]),
                     "model": data.get("model", m),
                     "usage": data.get("usage", {}),
                     "raw": data
