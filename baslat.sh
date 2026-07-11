@@ -1,5 +1,9 @@
 #!/bin/bash
 # Dijital Varlik — Tek Komutla Her Şeyi Başlat
+# Auto-detect Windows IP (WSL2 NAT modu)
+export WINDOWS_HOST_IP=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}')
+echo "9Router: $WINDOWS_HOST_IP:20128"
+
 cd "$(dirname "$0")"
 source .venv/bin/activate
 
