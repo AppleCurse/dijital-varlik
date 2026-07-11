@@ -1,5 +1,12 @@
 model_list:
   # Deepseek combo: akilli (mahkeme, kod)
+  # Karisik: genel (cevap veren)
+  - model_name: "karisik"
+    litellm_params:
+      model: "openai/karisik"
+      api_base: "http://172.17.0.1:20128/v1"
+      api_key: "sk-5762d1405cedb9c7-vtowrm-d6ad8046"
+
   - model_name: "deepseekcombo"
     litellm_params:
       model: "openai/deepseekcombo"
