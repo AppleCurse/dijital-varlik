@@ -26,6 +26,9 @@ else
 fi
 
 # Dashboard + WebSocket
+necho ">> Telegram bot baslatiliyor..."
+TELEGRAM_BOT_TOKEN="8903802500:AAH7hMaIFMa86LCLxkEeN8NlLD5rIZdhneo" nohup python3 -u mudahale/openclaw_bridge.py > /tmp/tg_bot.log 2>&1 &
+BOT_PID=$!
 echo ">> Nano Matris başlatılıyor (port 9998)..."
 python3 dashboard/server.py 9998 &
 DASH_PID=$!
@@ -40,10 +43,13 @@ echo "============================================"
 echo "  HAZIR!"
 echo "  Nano Matris: http://localhost:8000"
 echo "  Dashboard:   http://localhost:9998"
+necho ">> Telegram bot baslatiliyor..."
+TELEGRAM_BOT_TOKEN="8903802500:AAH7hMaIFMa86LCLxkEeN8NlLD5rIZdhneo" nohup python3 -u mudahale/openclaw_bridge.py > /tmp/tg_bot.log 2>&1 &
+BOT_PID=$!
 echo "  VS Code:     http://localhost:8080"
 echo "  Chat:        http://localhost:3000"
 echo "============================================"
-echo "  Çıkmak için: kill $DASH_PID $WS_PID"
+echo "  Çıkmak için: kill $DASH_PID $WS_PID $BOT_PID"
 echo "============================================"
 
 wait $DASH_PID $WS_PID
