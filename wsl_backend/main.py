@@ -42,7 +42,7 @@ class ConnectionManager:
 mgr = ConnectionManager()
 
 
-def otonom_isle(komut: str) -> dict:
+def otonom_isle(komut: str, model: str = "auto") -> dict:
     """Komutu işle, {type, data, source} döndür."""
     k = komut.lower().strip()
 
@@ -97,11 +97,27 @@ def otonom_isle(komut: str) -> dict:
                 return {"type": "response", "data": str(r.get("sonuc",""))[:500], "source": "atom"}
         except: pass
 
-    # ── LLM (9Router) ──
+    # ── LLM (model secimli) ──
     try:
-        from altyapi.litellm_bridge import litellm
-        r = litellm.chat([{"role":"user","content":komut}], max_tokens=300)
-        if r and r.get("content"):
+        from altyapi.ai_bridge import AIBridge
+        ai = AIBridge()
+
+        if model == "deepseek":
+            r = ai.deepseek_chat([{"role":"user","content":komut}], max_tokens=300)
+        elif model == "9router":
+            from altyapi.litellm_bridge import litellm
+            r = litellm.chat([{"role":"user","content":komut}], max_tokens=300)
+            if r and r.get("content"):
+                return {"type": "response", "data": r["content"][:500], "source": "9router"}
+            r = {"status": "error"}
+        elif model == "groq":
+            r = ai.groq_chat([{"role":"user","content":komut}], max_tokens=300)
+        elif model == "openrouter":
+            r = ai.openrouter_chat([{"role":"user","content":komut}], max_tokens=300)
+        else:
+            r = ai.chat([{"role":"user","content":komut}], max_tokens=300)  # auto fallback
+
+        if r and r.get("status") == "ok":
             return {"type": "response", "data": r["content"][:500], "source": r.get("model","llm")}
     except: pass
 
@@ -179,6 +195,7 @@ async def websocket_endpoint(ws: WebSocket):
             try:
                 msg = json.loads(data)
                 komut = msg.get("data", msg.get("command", ""))
+                model = msg.get("model", "auto")  # model secimi
             except:
                 komut = data
 
@@ -187,7 +204,7 @@ async def websocket_endpoint(ws: WebSocket):
 
             # Arka planda işle
             loop = asyncio.get_event_loop()
-            sonuc = await loop.run_in_executor(None, otonom_isle, komut)
+            sonuc = await loop.run_in_executor(None, otonom_isle, komut, model)
 
             await mgr.send(ws, sonuc)
             await mgr.send(ws, {"type":"log","source":sonuc.get("source","?"),
