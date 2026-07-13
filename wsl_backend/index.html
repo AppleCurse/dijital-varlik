@@ -2,66 +2,70 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DİJİTAL VARLIK — Komuta Merkezi</title>
+<title>⬡ DİJİTAL VARLIK — Komuta Merkezi</title>
 <style>
+:root{--bg:#06060b;--panel:#0a0a14;--border:#15152a;--purple:#7c3aed;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--text:#c0c0c0;--dim:#666}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:system-ui,monospace;background:#050508;color:#c0c0c0;height:100vh;display:flex;flex-direction:column;font-size:12px}
-header{background:#0a0a12;padding:6px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1a1a2e;flex-shrink:0}
-header h1{font-size:13px;color:#7c3aed;letter-spacing:1px}
-.hw{display:flex;gap:10px;font-size:9px}
-.hw span{padding:2px 6px;border-radius:3px;background:#111}
-.hw .on{color:#22c55e}.hw .off{color:#ef4444}
-main{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:4px;padding:4px;overflow:hidden}
-.panel{background:#0a0a14;border:1px solid #1a1a2e;border-radius:4px;display:flex;flex-direction:column;overflow:hidden}
-.panel-header{background:#0f0f1a;padding:4px 8px;font-size:9px;color:#666;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #1a1a2e;display:flex;justify-content:space-between;flex-shrink:0}
-.panel-body{flex:1;overflow-y:auto;padding:6px;font-size:10px;line-height:1.5}
-.cmd-bar{background:#0a0a12;padding:6px 10px;border-top:1px solid #1a1a2e;display:flex;gap:6px;flex-shrink:0}
-.cmd-bar input{flex:1;background:#0f0f1a;border:1px solid #1a1a2e;border-radius:4px;padding:8px 10px;color:#e0e0e0;font-size:12px;outline:none;font-family:monospace}
-.cmd-bar input:focus{border-color:#7c3aed}
-.cmd-bar button{background:#7c3aed;border:none;border-radius:4px;padding:8px 14px;color:#fff;font-weight:bold;cursor:pointer;font-size:11px}
-.log-line{margin:1px 0;padding:1px 0;border-bottom:1px solid #0f0f1a}
-.log-line .ts{color:#444;margin-right:4px}
-.log-line .src{color:#7c3aed;margin-right:4px;font-weight:bold}
-.log-line .msg{color:#999}
-.log-line.kod .msg{color:#22c55e}
-.log-line.mahkeme .msg{color:#f59e0b}
-.log-line.hata .msg{color:#ef4444}
-.cap-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px}
-.cap{background:#0f0f1a;padding:6px;border-radius:3px;text-align:center;font-size:9px}
-.cap .icon{font-size:18px;display:block}
-.cap.on{border:1px solid #1a3a1a}.cap.off{border:1px solid #3a1a1a;opacity:.4}
-#mahkeme-body .phase{margin:4px 0;padding:4px 6px;background:#0f0f1a;border-radius:2px;border-left:2px solid #7c3aed;font-size:9px}
-#mahkeme-body .phase .role{color:#7c3aed;font-weight:bold}
-#kod-body{font-family:monospace;font-size:9px;white-space:pre-wrap;color:#22c55e}
-@media(max-width:900px){main{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr 1fr}}
-@media(max-width:500px){main{grid-template-columns:1fr;grid-template-rows:auto}}
+body{font-family:system-ui,monospace;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;font-size:11px;overflow:hidden}
+header{background:var(--panel);padding:8px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-shrink:0}
+header h1{font-size:14px;color:var(--purple);letter-spacing:1px}
+.hw-bar{display:flex;gap:12px;font-size:10px}
+.hw{display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:4px;background:#0f0f1a}
+.hw .dot{width:6px;height:6px;border-radius:50%}
+.hw .dot.on{background:var(--green)}.hw .dot.off{background:var(--red)}
+.hw .val{color:#fff;font-weight:600;margin-left:2px}
+main{flex:1;display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:4px;padding:4px;overflow:hidden}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;display:flex;flex-direction:column;overflow:hidden}
+.panel-header{background:#0f0f1a;padding:5px 10px;font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;flex-shrink:0}
+.panel-body{flex:1;overflow-y:auto;padding:8px;font-size:10px;line-height:1.4}
+.cmd-bar{background:var(--panel);padding:6px 10px;border-top:1px solid var(--border);display:flex;gap:6px;flex-shrink:0}
+.cmd-bar input{flex:1;background:#0f0f1a;border:1px solid var(--border);border-radius:6px;padding:10px 12px;color:#fff;font-size:12px;outline:none;font-family:monospace}
+.cmd-bar input:focus{border-color:var(--purple)}
+.cmd-bar button{background:var(--purple);border:none;border-radius:6px;padding:10px 18px;color:#fff;font-weight:bold;cursor:pointer;font-size:11px}
+.log-line{padding:2px 0;border-bottom:1px solid #0a0a14;font-size:9px;display:flex;gap:6px}
+.log-line .ts{color:#444;min-width:40px}.log-line .src{color:var(--purple);min-width:50px;font-weight:bold}.log-line .msg{color:#999;flex:1}
+.log-line.kod .src{color:var(--green)}.log-line.mahkeme .src{color:var(--yellow)}.log-line.hata .src{color:var(--red)}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.metric{background:#0f0f1a;padding:8px;border-radius:4px;text-align:center}
+.metric .val{font-size:18px;font-weight:bold;color:var(--purple)}.metric .label{font-size:8px;color:var(--dim);margin-top:2px}
+.svc-row{display:flex;justify-content:space-between;padding:4px 6px;border-radius:3px;margin:1px 0;font-size:9px}
+.svc-row:nth-child(odd){background:#0a0a14}.svc-row .sname{color:var(--dim)}.svc-row .sstat{font-weight:600}
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.quick{background:#0f0f1a;padding:8px;border-radius:4px;text-align:center;cursor:pointer;border:1px solid transparent;transition:.15s;font-size:9px}
+.quick:hover{border-color:var(--purple);background:#1a1a2e}
+.quick .qicon{font-size:20px;display:block;margin-bottom:2px}
+.progress-bar{height:4px;background:#0f0f1a;border-radius:2px;margin-top:4px;overflow:hidden}
+.progress-fill{height:100%;background:var(--purple);border-radius:2px;transition:width 1s}
+@media(max-width:1000px){main{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr 1fr}}
+@media(max-width:600px){main{grid-template-columns:1fr;grid-template-rows:auto}}
 </style>
 </head>
 <body>
-<header><h1>⬡ DİJİTAL VARLIK — KOMUTA MERKEZİ</h1><div class="hw" id="hw"></div></header>
+<header><h1>⬡ DİJİTAL VARLIK</h1><div class="hw-bar" id="hw"></div></header>
 <main>
-<div class="panel"><div class="panel-header">⚖️ MAHKEME <span id="mahkeme-stat">BEKLEMEDE</span></div><div class="panel-body" id="mahkeme-body">Mahkeme 4 rol: Savcı, Savunma, Şüpheci, Hakim. Komut girince canlı izle.</div></div>
-<div class="panel"><div class="panel-header">💻 KOD AJANI <span id="kod-stat">HAZIR</span></div><div class="panel-body" id="kod-body">smolagents CodeAgent hazır. Kod yazma komutu bekliyor.</div></div>
-<div class="panel" style="grid-row:span 2"><div class="panel-header">📡 SİSTEM LOGU</div><div class="panel-body" id="log-body"></div></div>
-<div class="panel"><div class="panel-header">🛡️ YETENEKLER</div><div class="panel-body" id="cap-body"><div class="cap-grid"><div class="cap on"><span class="icon">💬</span>Sohbet</div><div class="cap on"><span class="icon">💻</span>Kod</div><div class="cap on"><span class="icon">🌐</span>Web</div><div class="cap on"><span class="icon">👁️</span>Görü</div><div class="cap on"><span class="icon">👤</span>Yüz</div><div class="cap on"><span class="icon">📚</span>Arama</div><div class="cap on"><span class="icon">🔊</span>Ses</div><div class="cap on"><span class="icon">🧠</span>Hafıza</div></div></div></div>
-<div class="panel"><div class="panel-header">🎯 KOMUT SONUCU</div><div class="panel-body" id="cmd-body" style="display:flex;align-items:center;justify-content:center;font-size:14px;color:#7c3aed">KOMUT GİRİN</div></div>
+<div class="panel" style="grid-row:span 2"><div class="panel-header">📡 SİSTEM LOGU <span id="log-count">0</span></div><div class="panel-body" id="log-body"></div></div>
+<div class="panel"><div class="panel-header">📊 DONANIM</div><div class="panel-body"><div class="metric-grid"><div class="metric"><div class="val" id="m-gpu">-</div><div class="label">GPU VRAM</div><div class="progress-bar"><div class="progress-fill" id="p-gpu" style="width:0%"></div></div></div><div class="metric"><div class="val" id="m-ram">-</div><div class="label">RAM</div><div class="progress-bar"><div class="progress-fill" id="p-ram" style="width:0%"></div></div></div><div class="metric"><div class="val" id="m-cpu">-</div><div class="label">CPU</div></div><div class="metric"><div class="val" id="m-disk">-</div><div class="label">DİSK</div></div></div></div></div>
+<div class="panel"><div class="panel-header">🔌 SERVİSLER</div><div class="panel-body" id="svc-body"></div></div>
+<div class="panel"><div class="panel-header">⚡ KOMUTLAR</div><div class="panel-body"><div class="quick-grid"><div class="quick" onclick="send('saat')"><span class="qicon">🕐</span>Saat</div><div class="quick" onclick="send('tarih')"><span class="qicon">📅</span>Tarih</div><div class="quick" onclick="send('merhaba')"><span class="qicon">💬</span>Sohbet</div><div class="quick" onclick="send('durum')"><span class="qicon">📊</span>Durum</div><div class="quick" onclick="send('1den 10a topla')"><span class="qicon">💻</span>Kod</div><div class="quick" onclick="send('example.com basligi')"><span class="qicon">🌐</span>Web</div></div></div></div>
+<div class="panel" style="grid-column:span 2"><div class="panel-header">🎯 ASPASIA <span id="cmd-stat">HAZIR</span></div><div class="panel-body" id="cmd-body" style="display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--purple)">Mösyö, komutunuzu bekliyorum.</div></div>
 </main>
-<div class="cmd-bar"><input id="cmd" placeholder="komut yaz..." onkeydown="if(event.key==='Enter')send()" autofocus><button onclick="send()">GÖNDER</button></div>
+<div class="cmd-bar"><input id="cmd" placeholder="Komut yazın..." onkeydown="if(event.key==='Enter')send()" autofocus><button onclick="send()">▶ GÖNDER</button></div>
 <script>
-const WS_URL='ws://'+location.host+'/ws';let ws=null,rt=null;
-function conn(){ws=new WebSocket(WS_URL);ws.onopen=()=>{updHW('BAGLI','on');log('sistem','Komuta merkezi baglantisi kuruldu.')};ws.onclose=()=>{updHW('KOPTU','off');clearTimeout(rt);rt=setTimeout(conn,3000)};ws.onerror=()=>updHW('HATA','off');ws.onmessage=e=>{let p=JSON.parse(e.data);handle(p)}}
+const WS_URL='ws://'+location.host+'/ws';let ws=null,rt=null,lc=0;
+function conn(){ws=new WebSocket(WS_URL);ws.onopen=()=>{updHW('🟢');log('sistem','Bağlantı kuruldu.');refreshHW()};ws.onclose=()=>{updHW('🔴');clearTimeout(rt);rt=setTimeout(conn,3000)};ws.onmessage=e=>{let p=JSON.parse(e.data);handle(p)}}
 function handle(p){
   if(p.type==='log')log(p.source,p.message);
-  else if(p.type==='response'){let el=document.getElementById('cmd-body');el.innerHTML='<div style="color:#e0e0e0;font-size:11px">'+p.data+'</div>';el.style.alignItems='flex-start';log(p.source||'cevap',p.data.substring(0,120))}
-  else if(p.type==='status'){updHW('ON','on');log('sistem',p.data)}
-  else if(p.type==='capabilities'){let c=document.getElementById('cap-body'),h='<div class="cap-grid">',icons={sohbet:'💬',kod:'💻',web:'🌐',goru:'👁️',yuz:'👤',arama:'📚',ses:'🔊',hafiza:'🧠'};for(let[k,v]of Object.entries(p.data))h+='<div class="cap '+(v?'on':'off')+'"><span class="icon">'+(icons[k]||'?')+'</span>'+k+'</div>';c.innerHTML=h+'</div>'}
-  else if(p.type==='mahkeme'){let m=document.getElementById('mahkeme-body');m.innerHTML+='<div class="phase"><span class="role">'+p.role+'</span> '+p.data.substring(0,200)+'</div>';document.getElementById('mahkeme-stat').textContent=p.role;m.scrollTop=m.scrollHeight}
-  else if(p.type==='kod'){let k=document.getElementById('kod-body');k.innerHTML+='<div style="color:#22c55e">'+p.data+'</div>';document.getElementById('kod-stat').textContent='CALISIYOR';k.scrollTop=k.scrollHeight}
+  else if(p.type==='response'){let el=document.getElementById('cmd-body');el.innerHTML='<div style="color:#e0e0e0;font-size:11px;white-space:pre-wrap">'+p.data+'</div>';el.style.alignItems='flex-start';document.getElementById('cmd-stat').textContent=p.source.toUpperCase();log(p.source||'cevap',p.data.substring(0,120))}
+  else if(p.type==='status'){log('sistem',p.data);refreshHW()}
+  else if(p.type==='capabilities'){let c=document.getElementById('svc-body'),h='',icons={sohbet:'💬',kod:'💻',web:'🌐',goru:'👁️',yuz:'👤',arama:'📚',ses:'🔊',hafiza:'🧠'};for(let[k,v]of Object.entries(p.data))h+='<div class="svc-row"><span class="sname">'+(icons[k]||'?')+' '+k+'</span><span class="sstat" style="color:'+(v?'var(--green)':'var(--red)')+'">'+(v?'AKTİF':'PASİF')+'</span></div>';c.innerHTML=h||'<div class="svc-row">Veri bekleniyor...</div>'}
+  else if(p.type==='mahkeme'){log('mahkeme',p.role+': '+p.data.substring(0,150))}
+  else if(p.type==='kod'){log('kod',p.data)}
 }
-function send(){let v=document.getElementById('cmd').value.trim();if(!v||!ws)return;ws.send(JSON.stringify({type:'command',data:v}));log('komut','> '+v);document.getElementById('cmd').value='';let el=document.getElementById('cmd-body');el.innerHTML='<div style="color:#7c3aed;font-size:14px">ISLENIYOR...</div>';el.style.alignItems='center'}
-function log(src,msg){let d=document.createElement('div');d.className='log-line'+(src==='kod'?' kod':src==='mahkeme'?' mahkeme':src==='hata'?' hata':'');let t=new Date().toLocaleTimeString().slice(0,5);d.innerHTML='<span class="ts">'+t+'</span><span class="src">['+src.toUpperCase()+']</span><span class="msg">'+msg+'</span>';let lb=document.getElementById('log-body');lb.appendChild(d);while(lb.children.length>200)lb.removeChild(lb.firstChild);lb.scrollTop=lb.scrollHeight}
-function updHW(txt,cls){document.getElementById('hw').innerHTML='<span class="'+cls+'">'+txt+'</span>'}
-conn();
+function send(v){v=v||document.getElementById('cmd').value.trim();if(!v||!ws)return;ws.send(JSON.stringify({type:'command',data:v}));log('komut','> '+v);document.getElementById('cmd').value='';let el=document.getElementById('cmd-body');el.innerHTML='<div style="color:var(--purple);font-size:13px">İŞLENİYOR...</div>';el.style.alignItems='center';document.getElementById('cmd-stat').textContent='ÇALIŞIYOR'}
+function log(src,msg){lc++;let d=document.createElement('div');d.className='log-line'+(src==='kod'?' kod':src==='mahkeme'?' mahkeme':src==='hata'?' hata':'');let t=new Date().toLocaleTimeString().slice(0,5);d.innerHTML='<span class="ts">'+t+'</span><span class="src">['+src.toUpperCase()+']</span><span class="msg">'+msg+'</span>';let lb=document.getElementById('log-body');lb.appendChild(d);while(lb.children.length>300)lb.removeChild(lb.firstChild);lb.scrollTop=lb.scrollHeight;document.getElementById('log-count').textContent=lc}
+function updHW(txt){document.getElementById('hw').innerHTML='<span style="color:var(--green)">'+txt+'</span>'}
+async function refreshHW(){try{let r=await fetch('/api/status');if(r.ok){let d=await r.json();let h='';h+='<div class="hw"><div class="dot '+(d['9router']=='ON'?'on':'off')+'"></div>9R <span class="val">'+(d['9router']||'?')+'</span></div>';h+='<div class="hw"><div class="dot '+(d.browser=='ON'?'on':'off')+'"></div>Web <span class="val">'+(d.browser||'?')+'</span></div>';h+='<div class="hw">🖥️ <span class="val">'+(d.gpu||'?')+'</span></div>';h+='<div class="hw">📡 <span class="val">'+(d.ram||'?')+'</span></div>';document.getElementById('hw').innerHTML=h}}catch(e){}}
+conn();setInterval(refreshHW,10000);
 </script>
 </body>
 </html>
