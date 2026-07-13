@@ -18,6 +18,8 @@ class Kesici:
             "saat": self._saat_yanit,
             "tarih": self._tarih_yanit,
             "bugün": self._tarih_yanit,
+            "hava": self._hava_yanit,
+            "hava durumu": self._hava_yanit,
             "merhaba": lambda: "Merhaba! Ben Dijital Varlık. Size nasıl yardımcı olabilirim?",
             "selam": lambda: "Selam! Ben Dijital Varlık. Ne yapmamı istersiniz?",
             "nasılsın": lambda: "İyiyim, teşekkürler! Size nasıl yardımcı olabilirim?",
@@ -36,6 +38,20 @@ class Kesici:
         aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
                  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
         return f"Bugün {now.day} {aylar[now.month-1]} {now.year}."
+
+    def _hava_yanit(self) -> str:
+        try:
+            from mudahale.weather_bridge import get_weather
+            w = get_weather()
+            r = w.city('istanbul')
+            if r['status'] == 'ok':
+                d = r['data']
+                return (f"İstanbul'da hava {d['weather'].lower()}, "
+                        f"{d['temperature']}°C. "
+                        f"Rüzgar {d['wind_speed']} km/h.")
+            return "Hava durumu alınamadı."
+        except:
+            return "Hava durumu şu an alınamıyor."
 
     def tani(self, metin: str) -> str | None:
         """
