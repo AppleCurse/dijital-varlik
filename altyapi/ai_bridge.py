@@ -56,6 +56,22 @@ class AIBridge:
         except Exception as e:
             return {"status": "error", "message": str(e)[:200]}
 
+
+    def openrouter_chat(self, messages: list, max_tokens: int = 500) -> dict:
+        """OpenRouter — 200+ model, ucretsiz tier var."""
+        key = os.getenv("OPENROUTER_API_KEY", "")
+        if not key: return {"status": "error", "message": "OPENROUTER_API_KEY yok"}
+        try:
+            r = requests.post("https://openrouter.ai/api/v1/chat/completions",
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json={"model": "google/gemini-2.0-flash-001", "messages": messages,
+                      "max_tokens": max_tokens, "stream": False}, timeout=30)
+            d = r.json()
+            return {"status": "ok", "content": d["choices"][0]["message"]["content"],
+                    "model": f"openrouter/{d.get('model', '?')}"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)[:200]}
+
     def deepseek_chat(self, messages: list, max_tokens: int = 500) -> dict:
         """DeepSeek API cagrisi."""
         if not DEEPSEEK_KEY:
@@ -108,7 +124,12 @@ class AIBridge:
         except: pass
 
         # 3. Groq (ucretsiz, en hizli)
-        return self.groq_chat(messages, max_tokens)
+        r = self.groq_chat(messages, max_tokens)
+        if r["status"] == "ok":
+            return r
+
+        # 4. OpenRouter (200+ model, ucretsiz tier)
+        return self.openrouter_chat(messages, max_tokens)
 
 
 ai = AIBridge()
