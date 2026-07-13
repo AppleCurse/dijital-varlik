@@ -1,0 +1,26 @@
+{
+  "claim": "WSL üzerinde çalışan dijital-varlik projesi, Claude Code ile entegre bir siber organizma olarak başarıyla çalışmaktadır.",
+  "verdict": "NEEDS_MORE_EVIDENCE",
+  "confidence": 0.0,
+  "duration": 0.025879383087158203,
+  "debate": [
+    {
+      "role": "SAVCI",
+      "content": "{\n  \"raw_response\": \"{\\\"error\\\":{\\\"message\\\":\\\"No connected db.\\\",\\\"type\\\":\\\"no_db_connection\\\",\\\"param\\\":null,\\\"code\\\":\\\"400\\\"}}\"\n}"
+    },
+    {
+      "role": "SAVUNMA",
+      "content": "{\n  \"raw_response\": \"{\\\"error\\\":{\\\"message\\\":\\\"No connected db.\\\",\\\"type\\\":\\\"no_db_connection\\\",\\\"param\\\":null,\\\"code\\\":\\\"400\\\"}}\"\n}"
+    },
+    {
+      "role": "SKEPTIC",
+      "content": "{\n  \"raw_response\": \"{\\\"error\\\":{\\\"message\\\":\\\"No connected db.\\\",\\\"type\\\":\\\"no_db_connection\\\",\\\"param\\\":null,\\\"code\\\":\\\"400\\\"}}\"\n}"
+    },
+    {
+      "role": "JUDGE",
+      "content": "{\n  \"raw_response\": \"{\\\"error\\\":{\\\"message\\\":\\\"No connected db.\\\",\\\"type\\\":\\\"no_db_connection\\\",\\\"param\\\":null,\\\"code\\\":\\\"400\\\"}}\"\n}"
+    }
+  ],
+  "approved_output": null,
+  "reasoning": ""
+}

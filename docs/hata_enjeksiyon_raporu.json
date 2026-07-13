@@ -1,0 +1,49 @@
+{
+  "test_tarihi": "2026-07-01T13:10:34.774668",
+  "test_adi": "Faz 1 — Hata Enjeksiyon ve Kurtarma Testi",
+  "testler": [
+    {
+      "test": "Harness ConnectionError",
+      "basarili": true,
+      "detay": "Harness 3 deneme sonunda pes etti. Exponential backoff çalıştı (14.0s bekleme).",
+      "kanit": "MAX_DENEME=3, deneme=3, süre=14.0s, sonuç=None"
+    },
+    {
+      "test": "smolagents Bozuk Araç",
+      "basarili": true,
+      "detay": "smolagents hata aldı ama kontrollü şekilde sonuç döndü: Example Domain",
+      "kanit": "süre=9.1s, sonuç tipi=str"
+    },
+    {
+      "test": "Ulaşılamaz URL",
+      "basarili": true,
+      "detay": "Sistem ulaşılamaz URL'i kontrollü şekilde işledi. Çökme olmadı, hata mesajı döndü.",
+      "kanit": "süre=20.2s, sonuç=Sayfa açılamadı: Domain 'bu-domain-kesinlikle-yok-12345.invalid' mevcut değil veya çözümlenemiyor."
+    },
+    {
+      "test": "Orchestrator Hata Akışı",
+      "basarili": true,
+      "detay": "Orchestrator hatalı görevi kontrollü şekilde işledi: rejected. Sistem çökmedi, kullanıcıya anlamlı yanıt döndü.",
+      "kanit": "{\"status\": \"rejected\", \"message\": \"Talep edilen işlem (standart dışı bir portta, test ağına ait bir IP adresine bağlantı) temel olarak zararlı veya yasa dışı görünmese de, çok sayıda kr\", \"verdict\": \"NEEDS_MORE_EVIDENCE\", \"confidence\": \"0.62\", \"minority_report\": \"Azınlık görüşü: Talep tamamen reddedilmek için yeterince tehlikeli değildir; standart dışı port ve test IP'si, bağlam eksikliğine rağmen düşük riskli \"}"
+    },
+    {
+      "test": "Harness TimeoutError",
+      "basarili": true,
+      "detay": "TimeoutError backoff stratejisi çalıştı: 3 deneme, 14.0s",
+      "kanit": "deneme=3, sure=14.0s"
+    },
+    {
+      "test": "Harness ValueError",
+      "basarili": true,
+      "detay": "ValueError stratejisi (manuel) çalıştı: 3 deneme, kontrollü pes etti",
+      "kanit": "deneme=3, sonuç=None"
+    }
+  ],
+  "genel_basari": true,
+  "ozet": {
+    "toplam": 6,
+    "basarili": 6,
+    "basarisiz": 0,
+    "basari_orani": "100%"
+  }
+}
