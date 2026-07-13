@@ -36,6 +36,26 @@ class AIBridge:
         except Exception as e:
             return {"status": "error", "message": str(e)[:200]}
 
+
+    def groq_chat(self, messages: list, max_tokens: int = 500) -> dict:
+        """Groq API cagrisi — UCRETSIZ, en hizli."""
+        key = os.getenv("GROQ_API_KEY", "")
+        if not key:
+            return {"status": "error", "message": "GROQ_API_KEY yok"}
+        try:
+            from groq import Groq
+            client = Groq(api_key=key)
+            r = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=0.3
+            )
+            return {"status": "ok", "content": r.choices[0].message.content,
+                    "model": "llama-3.3-70b (Groq/Free)"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)[:200]}
+
     def deepseek_chat(self, messages: list, max_tokens: int = 500) -> dict:
         """DeepSeek API cagrisi."""
         if not DEEPSEEK_KEY:
@@ -73,8 +93,13 @@ class AIBridge:
             return {"status": "error", "message": str(e)[:200]}
 
     def chat(self, messages: list, max_tokens: int = 500) -> dict:
-        """Fallback zinciri: 9Router → DeepSeek → Gemini."""
-        # 1. 9Router
+        """Fallback zinciri: DeepSeek → 9Router → Groq."""
+        # 1. DeepSeek (hizli, ucuz)
+        r = self.deepseek_chat(messages, max_tokens)
+        if r["status"] == "ok":
+            return r
+
+        # 2. 9Router (75 model, kotali)
         try:
             from altyapi.litellm_bridge import litellm
             r = litellm.chat(messages, max_tokens=max_tokens)
@@ -82,13 +107,8 @@ class AIBridge:
                 return {"status": "ok", "content": r["content"][:1000], "model": r.get("model", "9router")}
         except: pass
 
-        # 2. DeepSeek
-        r = self.deepseek_chat(messages, max_tokens)
-        if r["status"] == "ok":
-            return r
-
-        # 3. Gemini
-        return self.gemini_chat(messages, max_tokens)
+        # 3. Groq (ucretsiz, en hizli)
+        return self.groq_chat(messages, max_tokens)
 
 
 ai = AIBridge()
