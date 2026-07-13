@@ -38,48 +38,50 @@ class FirecrawlBridge:
         self._init_client()
 
     def hazir_mi(self) -> bool:
+        if not self._ready and self._api_key:
+            self._init_client()
         return self._ready
 
-    def scrape(self, url: str, formats: list = None) -> dict:
-        """URL'yi kazi, markdown/HTML/json dondur."""
+    def scrape(self, url: str) -> dict:
+        """URL'yi kazi, markdown dondur."""
         if not self._ready:
-            return {"status": "error", "message": "FIRECRAWL_API_KEY gerekli. https://firecrawl.dev"}
+            return {"status": "error", "message": "FIRECRAWL_API_KEY gerekli."}
         try:
-            result = self._client.scrape_url(url, params={"formats": formats or ["markdown"]})
-            return {"status": "ok", "markdown": result.get("markdown", "")[:5000],
-                    "title": result.get("metadata", {}).get("title", ""),
+            result = self._client.scrape_url(url, formats=["markdown"])
+            title = ""
+            if result.metadata:
+                try: title = result.metadata.get("title", "")
+                except: title = getattr(result.metadata, "title", "")
+            return {"status": "ok",
+                    "markdown": result.markdown[:5000] if result.markdown else "",
+                    "title": title,
                     "url": url}
         except Exception as e:
             return {"status": "error", "message": str(e)[:300]}
 
     def search(self, query: str, limit: int = 5) -> dict:
-        """Web'de arama yap, sonuclari kazi."""
+        """Web'de arama yap."""
         if not self._ready:
             return {"status": "error", "message": "FIRECRAWL_API_KEY gerekli."}
         try:
-            result = self._client.search(query, params={"limit": limit})
+            result = self._client.search(query, limit=limit)
             items = []
-            for r in result.get("data", [])[:limit]:
-                items.append({
-                    "title": r.get("title", ""),
-                    "url": r.get("url", ""),
-                    "description": r.get("description", "")[:300],
-                })
+            for r in (result.get("data", []) if isinstance(result, dict) else [])[:limit]:
+                items.append({"title": r.get("title", ""), "url": r.get("url", ""),
+                              "description": r.get("description", "")[:300]})
             return {"status": "ok", "results": items, "count": len(items)}
         except Exception as e:
             return {"status": "error", "message": str(e)[:300]}
 
     def crawl(self, url: str, max_pages: int = 10) -> dict:
-        """Siteyi tara, tum sayfalari kazi."""
+        """Siteyi tara."""
         if not self._ready:
             return {"status": "error", "message": "FIRECRAWL_API_KEY gerekli."}
         try:
-            result = self._client.crawl_url(url, params={
-                "limit": max_pages,
-                "scrapeOptions": {"formats": ["markdown"]}
-            })
-            return {"status": "ok", "pages": result.get("data", [])[:max_pages],
-                    "total": result.get("total", 0)}
+            result = self._client.crawl_url(url, limit=max_pages,
+                                            scrape_options={"formats": ["markdown"]})
+            return {"status": "ok", "pages": result.get("data", [])[:max_pages] if isinstance(result, dict) else [],
+                    "total": result.get("total", 0) if isinstance(result, dict) else 0}
         except Exception as e:
             return {"status": "error", "message": str(e)[:300]}
 
