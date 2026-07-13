@@ -111,6 +111,15 @@ class LiteLLMBridge:
                 print(f"[LiteLLM] {m} başarısız, sonraki deneniyor... ({e})")
                 continue
 
+        # DeepSeek fallback (9Router yoksa)
+        try:
+            from altyapi.ai_bridge import ai
+            r = ai.deepseek_chat(messages, max_tokens=max_tokens)
+            if r["status"] == "ok":
+                return {"content": r["content"], "model": "deepseek-chat", "usage": {}}
+        except Exception as e:
+            print(f"[LiteLLM] DeepSeek fallback da başarısız: {e}")
+
         print(f"[LiteLLM] Tüm modeller başarısız: {last_error}")
         return None
 

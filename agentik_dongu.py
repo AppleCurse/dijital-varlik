@@ -48,14 +48,10 @@ from altyapi.letta_bridge import get_letta
 from altyapi.litellm_bridge import litellm
 from mudahale.browser_use_bridge import get_browser_use
 from mudahale.web_tools import web_fetch, web_extract_title, web_screenshot, web_navigate
-from mudahale.skyvern_bridge import get_skyvern
-from mudahale.hebo_bridge import get_hebo
 from mudahale.atom_bridge import get_atom
 from mudahale.pipecat_bridge import get_pipecat
-from mudahale.openhands_bridge import get_openhands
 from mudahale.f5tts_bridge import get_f5tts
 from mudahale.qwen_bridge import get_qwen
-from mudahale.airi_bridge import get_airi
 import socket
 import subprocess
 
@@ -351,28 +347,23 @@ class AgentikDongu:
         self.web_tools = [web_fetch, web_extract_title, web_screenshot, web_navigate]
         self.smol = get_smol(tools=self.web_tools)
         self.browser_use = get_browser_use()
-        self.skyvern = get_skyvern()
-        self.hebo = get_hebo()
+        pass
         print(f"  Browser : {'OK' if self.browser_use.hazir_mi() else 'FAIL'} - browserless CDP")
-        print(f"  Skyvern : {'OK' if self.skyvern.hazir_mi() else 'FAIL'} - web otomasyon")
         print(f"  smol    : {'OK' if self.smol.hazir_mi() else 'FAIL'} - {len(self.web_tools)} arac")
         self.atom = get_atom()
         print(f"  ATOM    : {'OK' if self.atom.hazir_mi() else 'FAIL'} - sistem araclari + ChromaDB")
         self.pipecat = get_pipecat()
         self.f5tts = get_f5tts()
         self.qwen = get_qwen()
-        self.airi = get_airi()
-        self.openhands = get_openhands()
+        pass
+        pass
 
         # Istihbarat (BettaFish bridge - opsiyonel)
         print("\n> ISTIHBARAT")
         try:
-            from mudahale.bettafish_bridge import BettaFishBridge
             self.bettafish = BettaFishBridge()
-            print(f"  BettaFish: OK izole hucre hazir")
         except Exception:
             self.bettafish = None
-            print(f"  BettaFish: WARN devre disi")
 
         # Masaustu (Agent S)
         print("\n> MASAUSTU")
@@ -409,7 +400,7 @@ class AgentikDongu:
         print("\n> MESAJLASMA")
         self.openclaw = OpenClawBridge()
         self.agentreach = AgentReachBridge()
-        oh_ok = self.openhands and self.openhands.hazir_mi()
+        oh_ok = False
         print(f"  OpenHands : {'OK API hazir' if oh_ok else 'WARN API kapali'}")
         print(f"  OpenClaw   : {'OK repo var' if self.openclaw.hazir_mi() else 'PENDING repo klonlanacak'}")
         print(f"  Agent-Reach: {'OK repo var' if self.agentreach.hazir_mi() else 'PENDING repo klonlanacak'}")
@@ -417,7 +408,7 @@ class AgentikDongu:
         # Görü
         print("\n> GORU")
         q_ok = self.qwen and self.qwen.hazir_mi()
-        a_ok = self.airi and self.airi.hazir_mi()
+        a_ok = False
         print(f"  Qwen-VL : {'OK GPU hazir' if q_ok else 'WARN GPU bekliyor'}")
         print(f"  AIRI    : {'OK WebGPU' if a_ok else 'WARN WebGPU tarayici gerekli'}")
 
@@ -835,18 +826,17 @@ class AgentikDongu:
                 "litellm": self.litellm.health() if self.litellm else False,
                 "mem0": mem0_ok,
                 "letta": True,
-                "hebo": self.hebo.hazir_mi() if self.hebo else False,
+                "hebo": False,
                 "harness": harness_n,
                 "browser_use": browser_ok,
-                "skyvern": self.skyvern.hazir_mi() if self.skyvern else False,
                 "smolagents": smol_ok,
-                "bettafish": self.bettafish is not None and self.bettafish.hazir_mi() if self.bettafish else False,
+"bettafish": False,
                 "atom": self.atom.hazir_mi() if self.atom else False,
                 "pipecat": self.pipecat.hazir_mi() if self.pipecat else False,
                 "f5tts": self.f5tts.hazir_mi() if self.f5tts else False,
                 "qwen_vl": self.qwen.hazir_mi() if self.qwen else False,
-                "airi": self.airi.hazir_mi() if self.airi else False,
-                "openhands": self.openhands.hazir_mi() if self.openhands else False,
+                "airi": False,
+                "openhands": False,
             },
         }
 
