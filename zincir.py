@@ -83,7 +83,9 @@ def zincir_ses(metin: str = None):
         sonuc_metni = sonuc_metni.get("message", str(sonuc_metni))
     sonuc_metni = str(sonuc_metni or "Tamamlandı")[:500]
 
-    print(f"✅ Sonuç: {sonuc_metni[:200]}")
+    basarisiz = sonuc_metni.startswith("__HATA__")
+    etiket = "❌ HATA" if basarisiz else "✅ Sonuç"
+    print(f"{etiket}: {sonuc_metni[:200]}")
 
     # Adım 3: Sesli yanıt
     _konus(sonuc_metni[:300])
@@ -262,7 +264,9 @@ def zincir_kod(gorev: str):
         sonuc_metni = sonuc_metni.get("message", str(sonuc_metni))
     sonuc_metni = str(sonuc_metni or "Kod yazıldı ve çalıştırıldı")[:500]
 
-    print(f"✅ Sonuç: {sonuc_metni[:200]}")
+    basarisiz = sonuc_metni.startswith("__HATA__")
+    etiket = "❌ HATA" if basarisiz else "✅ Sonuç"
+    print(f"{etiket}: {sonuc_metni[:200]}")
 
     bus.publish(Event(EventType.TOOL_COMPLETED, {"tool": "smolagents", "result": sonuc_metni[:100]}))
 

@@ -70,7 +70,7 @@ class SmolAgentBridge:
             return str(result)
         except Exception as e:
             print(f"[smolagents] Execution error: {e}")
-            return None
+            return f"__HATA__: {e}"
 
     def hazir_mi(self) -> bool:
         return self._agent_ready
