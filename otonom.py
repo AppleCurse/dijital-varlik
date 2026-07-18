@@ -26,37 +26,41 @@ from altyapi.kesici import kesici
 # GİRİŞ SINIFLANDIRICI
 # ═══════════════════════════════════════════════════════════
 
+import re
+
+_YUZ_PATTERN = re.compile(r"yüz|fotoğraf|resim|foto|kim bu|tanı|yüz tanıma|yüz analizi|görüntü", re.IGNORECASE)
+_EXT_PATTERN = re.compile(r"\.jpg|\.png|\.jpeg|/", re.IGNORECASE)
+_KOD_PATTERN = re.compile(r"kod yaz|script|python|hesapla|fonksiyon|program|yaz|oluştur|topla|çıkar", re.IGNORECASE)
+_WEB_PATTERN = re.compile(r"site|web|tarayıcı|http|tıkla|sayfa|form|indir|url|link|gez", re.IGNORECASE)
+_GORU_PATTERN = re.compile(r"ekran|görüntü|grafik|ne var|göster", re.IGNORECASE)
+
 def siniflandir(metin: str) -> str:
     """
     Girdiyi sınıflandır, uygun zincire yönlendir.
 
     Returns: "ses", "kod", "goru", "yuz", "web"
+
+    ⚡ Bolt Optimization: Uses pre-compiled regex objects rather than
+       generating lists and multiple substring checks on ".lower()" text
     """
-    lower = metin.lower()
+
 
     # Yüz tanıma tetikleyicileri
-    yuz_kelimeler = ["yüz", "fotoğraf", "resim", "foto", "kim bu",
-                     "tanı", "yüz tanıma", "yüz analizi", "görüntü"]
-    if any(k in lower for k in yuz_kelimeler):
+    if _YUZ_PATTERN.search(metin):
         # Görüntü yolu var mı?
-        if any(ext in lower for ext in [".jpg", ".png", ".jpeg", "/"]):
+        if _EXT_PATTERN.search(metin):
             return "goru"
 
     # Kod tetikleyicileri
-    kod_kelimeler = ["kod yaz", "script", "python", "hesapla", "fonksiyon",
-                     "program", "yaz", "oluştur", "topla", "çıkar"]
-    if any(k in lower for k in kod_kelimeler):
+    if _KOD_PATTERN.search(metin):
         return "kod"
 
     # Web tetikleyicileri
-    web_kelimeler = ["site", "web", "tarayıcı", "http", "tıkla",
-                     "sayfa", "form", "indir", "url", "link", "gez"]
-    if any(k in lower for k in web_kelimeler):
+    if _WEB_PATTERN.search(metin):
         return "web"
 
     # Görü tetikleyicileri
-    goru_kelimeler = ["ekran", "görüntü", "grafik", "ne var", "göster"]
-    if any(k in lower for k in goru_kelimeler):
+    if _GORU_PATTERN.search(metin):
         return "goru"
 
     return "ses"
