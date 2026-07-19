@@ -258,30 +258,24 @@ class GorevTipi(Enum):
     ISTIHBARAT = "istihbarat"
 
 
+# ⚡ Bolt Optimization: Move keywords arrays to global scope as tuples
+# to avoid O(N) object recreation on every function call while retaining fast C-level substring matching.
+_WEB_KEYWORDS = ("site", "web", "tarayici", "browser", "http", "tikla", "sayfa", "form", "indir", "download", "url", "link", "ekran goruntusu", "screenshot", "gez", "dolas")
+_MASAUSTU_KEYWORDS = ("excel", "word", "dosya", "klasor", "fare", "klavye", "masaustu", "pencere", "kaydet", "notepad", "hesap makinesi", "cmd", "powershell", "agent s")
+_ANALIZ_KEYWORDS = ("analiz", "rapor", "ozetle", "karsilastir", "istatistik", "grafik", "tablo", "veri", "arastir", "incele")
+_ISTIHBARAT_KEYWORDS = ("gundem", "haber", "sosyal medya", "tara", "twitter", "reddit", "tiktok", "instagram", "trend", "viral", "sentiment", "duygu analizi", "public opinion")
+_KOD_KEYWORDS = ("kod", "python", "script", "hesapla", "fonksiyon", "program", "debug", "fix", "duzelt")
+
 def gorev_tipini_belirle(gorev: str) -> GorevTipi:
     """LLM kullanmadan, anahtar kelime ile hizli tip tespiti."""
     g = gorev.lower()
 
-    web_keywords = ["site", "web", "tarayici", "browser", "http", "tikla",
-                    "sayfa", "form", "indir", "download", "url", "link",
-                    "ekran goruntusu", "screenshot", "gez", "dolas"]
-    masaustu_keywords = ["excel", "word", "dosya", "klasor", "fare", "klavye",
-                         "masaustu", "pencere", "kaydet", "notepad",
-                         "hesap makinesi", "cmd", "powershell", "agent s"]
-    analiz_keywords = ["analiz", "rapor", "ozetle", "karsilastir", "istatistik",
-                       "grafik", "tablo", "veri", "arastir", "incele"]
-    istihbarat_keywords = ["gundem", "haber", "sosyal medya", "tara", "twitter",
-                           "reddit", "tiktok", "instagram", "trend", "viral",
-                           "sentiment", "duygu analizi", "public opinion"]
-    kod_keywords = ["kod", "python", "script", "hesapla", "fonksiyon",
-                    "program", "debug", "fix", "duzelt"]
-
     scores = {
-        GorevTipi.WEB: sum(1 for kw in web_keywords if kw in g),
-        GorevTipi.MASAUSTU: sum(1 for kw in masaustu_keywords if kw in g),
-        GorevTipi.ANALIZ: sum(1 for kw in analiz_keywords if kw in g),
-        GorevTipi.KOD: sum(1 for kw in kod_keywords if kw in g),
-        GorevTipi.ISTIHBARAT: sum(1 for kw in istihbarat_keywords if kw in g),
+        GorevTipi.WEB: sum(1 for kw in _WEB_KEYWORDS if kw in g),
+        GorevTipi.MASAUSTU: sum(1 for kw in _MASAUSTU_KEYWORDS if kw in g),
+        GorevTipi.ANALIZ: sum(1 for kw in _ANALIZ_KEYWORDS if kw in g),
+        GorevTipi.ISTIHBARAT: sum(1 for kw in _ISTIHBARAT_KEYWORDS if kw in g),
+        GorevTipi.KOD: sum(1 for kw in _KOD_KEYWORDS if kw in g),
     }
 
     best = max(scores, key=scores.get)
