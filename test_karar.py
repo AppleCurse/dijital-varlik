@@ -22,7 +22,7 @@ print("\n2. Harness Motoru")
 from karar.harness import get_harness
 h = get_harness()
 print(f"   Strateji sayısı: {len(h.stratejiler)}")
-print(f"   Max deneme: {h.MAX_DENEME}")
+print(f"   Max deneme: {h.max_deneme}")
 
 # Basit test: hata vermeyen fonksiyon
 def basit_fonksiyon(x, y):
@@ -47,6 +47,6 @@ print(f"   Agent hazır: {s.hazir_mi()}")
 print("\n" + "=" * 50)
 print("KATMAN 3 ÖZET:")
 print(f"  Mahkeme    : ✅ (motor yüklendi)")
-print(f"  Harness    : ✅ ({len(h.stratejiler)} strateji, max {h.MAX_DENEME} deneme)")
+print(f"  Harness    : ✅ ({len(h.stratejiler)} strateji, max {h.max_deneme} deneme)")
 print(f"  smolagents : {'✅' if s.hazir_mi() else '⚠️'} (agent {'hazır' if s.hazir_mi() else 'başlatılamadı'})")
 print("=" * 50)
