@@ -115,11 +115,13 @@ import json; print(json.dumps(result, ensure_ascii=False))
     def _status(self):
         s = {}
         try:
-            import requests; r=requests.get("http://172.23.96.1:20128/api/health",timeout=2)
+            from config.config import config
+            import requests; r=requests.get(f"{config.LITELLM_URL}/models",timeout=2)
             s["9router"]="ON" if r.status_code==200 else "OFF"
         except: s["9router"]="OFF"
         try:
-            import requests; r=requests.get("http://localhost:3004/json/version",timeout=2)
+            from config.config import config
+            import requests; r=requests.get(f"{config.BROWSERLESS_URL}/json/version",timeout=2)
             s["browser"]="ON" if r.status_code==200 else "OFF"
         except: s["browser"]="OFF"
         try:

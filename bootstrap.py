@@ -39,11 +39,8 @@ REPOS = {
 # ================================================================
 
 SERVISLER = [
-    ("9router API", "http://localhost:20128/api/health", None),
-    ("Browserless CDP", "http://localhost:3001/json/version", None),
-    ("LiteLLM Proxy", "http://localhost:4000/health", "omniroute"),
-    ("Open WebUI", "http://localhost:3000", None),
-    ("Code Server", "http://localhost:8080", None),
+    ("9router API", "http://localhost:20128/v1/models", None),
+    ("Browserless CDP", "http://localhost:3004/json/version", None),
 ]
 
 # ================================================================
@@ -197,14 +194,14 @@ class Bootstrap:
         path.write_text("""model_list:
   - model_name: "9router"
     litellm_params:
-      model: "openai/gemini/gemini-2.5-flash"
-      api_base: "http://172.23.100.38:20128/v1"
-      api_key: "sk-5762d1405cedb9c7-txz14a-1ae81231"
+      model: "openai/dijitalvarlik"
+      api_base: "http://localhost:20128/v1"
+      api_key: "sk-58bbadde44171bff-6jq5bl-7378c3af"
   - model_name: "9router-lite"
     litellm_params:
-      model: "openai/gemini/gemini-2.5-flash-lite"
-      api_base: "http://172.23.100.38:20128/v1"
-      api_key: "sk-5762d1405cedb9c7-txz14a-1ae81231"
+      model: "openai/karisik"
+      api_base: "http://localhost:20128/v1"
+      api_key: "sk-58bbadde44171bff-6jq5bl-7378c3af"
 
 general_settings:
   master_key: "omniroute"

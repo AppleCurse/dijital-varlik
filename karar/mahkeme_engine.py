@@ -198,39 +198,93 @@ def _parse_verdict_heuristic(text: str) -> dict:
     return {"verdict": verdict, "reasoning": reasoning, "confidence": confidence}
 
 class LLMClient:
-    """9router uzerinden LLM cagrilari. OpenAI + Anthropic format destegi."""
+    """
+    Coklu provider fallback'li LLM istemcisi.
+    Sira: DeepSeek → Groq → NVIDIA → OpenRouter
+    Her provider basarisiz olursa siradakine gecer.
+    """
+
+    # Provider zinciri — .env'den okur, yoksa default
+    def _load_providers(self):
+        import os as _os
+        return [
+            {
+                "name": "deepseek",
+                "url": _os.getenv("DEEPSEEK_URL", "https://api.deepseek.com/v1"),
+                "key": _os.getenv("DEEPSEEK_API_KEY", ""),
+                "model": _os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+            },
+            {
+                "name": "groq",
+                "url": _os.getenv("GROQ_URL", "https://api.groq.com/openai/v1"),
+                "key": _os.getenv("GROQ_API_KEY", ""),
+                "model": _os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile"),
+            },
+            {
+                "name": "nvidia",
+                "url": _os.getenv("NVIDIA_URL", "https://integrate.api.nvidia.com/v1"),
+                "key": _os.getenv("NVIDIA_API_KEY", ""),
+                "model": _os.getenv("NVIDIA_MODEL", "nvidia/llama-3.1-nemotron-70b-instruct"),
+            },
+            {
+                "name": "openrouter",
+                "url": _os.getenv("OPENROUTER_URL", "https://openrouter.ai/api/v1"),
+                "key": _os.getenv("OPENROUTER_API_KEY", ""),
+                "model": _os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
+            },
+        ]
 
     def __init__(self, base_url: str = None, api_key: str = None):
-        raw = (base_url or config.LITELLM_URL).rstrip("/")
-        # 9router /v1 path'ini duzgun kullan
-        if raw.endswith("/v1"):
-            self.base_url = raw
-        else:
-            self.base_url = raw + "/v1" if "/v1" not in raw else raw
+        self.providers = self._load_providers()
+        # Tek provider (geriye uyumlu)
+        self.base_url = (base_url or config.LITELLM_URL).rstrip("/")
         self.api_key = api_key or config.LITELLM_KEY
 
     def call(self, system_prompt: str, user_message: str,
              model: str = None, temperature: float = 0.3,
              max_tokens: int = 4096) -> dict:
-        """LLM cagrisi — OpenAI Chat, basarisizsa fallback."""
+        """LLM cagrisi — 4 provider fallback zinciri."""
         model = model or config.MAHKEME_MODEL
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message}
+        ]
 
-        # OpenAI Chat Completions (9router'in ana destegi)
-        result = self._call_openai(system_prompt, user_message,
-                                   model, temperature, max_tokens)
+        # Her provider'i sirasiyla dene
+        for provider in self.providers:
+            if not provider["key"]:
+                continue
+
+            result = self._try_provider(provider, messages, model, temperature, max_tokens)
+            if result and "error" not in result:
+                result["_provider"] = provider["name"]
+                return result
+
+        # Tum provider'lar basarisiz — direkt URL'yi dene
+        print("[LLM] Tum provider'lar basarisiz, direkt URL deneniyor...", file=sys.stderr)
+        result = self._call_openai_direct(system_prompt, user_message, model, temperature, max_tokens)
         if result and "error" not in result:
             return result
+        return {"error": "All providers failed"}
 
-        # Fallback: Anthropic Messages API
-        result = self._call_anthropic(system_prompt, user_message,
-                                      model, temperature, max_tokens)
-        if result and "error" not in result:
-            return result
+    def _try_provider(self, provider, messages, model, temperature, max_tokens):
+        """Tek bir provider'a OpenAI-format istek gonder."""
+        url = f"{provider['url'].rstrip('/')}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {provider['key']}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": model or provider["model"],
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": False,
+        }
+        return self._post(url, headers, payload, provider["name"])
 
-        return result or {"error": "All endpoints failed"}
-
-    def _call_openai(self, system_prompt, user_message, model, temperature, max_tokens):
-        """OpenAI Chat Completions endpoint'i."""
+    def _call_openai_direct(self, system_prompt, user_message, model, temperature, max_tokens):
+        """Direkt URL'ye OpenAI-format istek (geriye uyumlu fallback)."""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -245,120 +299,60 @@ class LLMClient:
             "max_tokens": max_tokens,
             "stream": False,
         }
-        return self._post(f"{self.base_url}/chat/completions", headers, payload)
+        return self._post(f"{self.base_url}/chat/completions", headers, payload, "direct")
 
-    def _call_anthropic(self, system_prompt, user_message, model, temperature, max_tokens):
-        """Anthropic Messages API endpoint'i (9router uyumlu)."""
-        headers = {
-            "x-api-key": self.api_key,
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": model,
-            "max_tokens": max_tokens,
-            "system": system_prompt,
-            "messages": [
-                {"role": "user", "content": user_message}
-            ],
-            "stream": False,
-        }
-        return self._post(f"{self.base_url}/messages", headers, payload)
-
-    def _post(self, url, headers, payload):
+    def _post(self, url, headers, payload, provider_name: str = ""):
         content = None
+        tag = f"[LLM:{provider_name}]" if provider_name else "[LLM]"
         try:
             resp = requests.post(url, headers=headers, json=payload, timeout=120)
             if resp.status_code != 200:
-                print(f"[LLM ERROR] {resp.status_code} for url: {url}", file=sys.stderr)
-                return {"error": f"HTTP {resp.status_code}", "raw_response": resp.text[:500]}
-
+                print(f"{tag} HTTP {resp.status_code} → siradaki...", file=sys.stderr)
+                return {"error": f"HTTP {resp.status_code}"}
+            
             raw_text = resp.text or ""
-
-            # SSE streaming yanitini JSON'a cevir
-            if raw_text.startswith("event:") or raw_text.startswith("data:"):
-                content = _parse_sse(raw_text)
-                if content:
-                    return content
-
-            # Anthropic format yaniti
-            data = resp.json()
-            if "content" in data and isinstance(data["content"], list):
-                for block in data["content"]:
-                    if block.get("type") == "text":
-                        content = block["text"]
-                        break
-
-            # OpenAI format yaniti
-            if not content and "choices" in data:
-                content = data["choices"][0]["message"]["content"]
-
-            if not content:
-                # SSE'den parse edilemeyen durum
-                print(f"[LLM ERROR] Could not extract content. Raw: {raw_text[:300]}", file=sys.stderr)
-                return {"error": "No content in response", "raw_response": raw_text[:500]}
-            if not content or not content.strip():
-                print(f"[LLM ERROR] Empty response from API", file=sys.stderr)
-                return {"error": "Empty API response"}
-
-            # REFUSAL DETECTION
-            refusal_phrases = [
-                "i can't discuss that",
-                "i cannot discuss that",
-                "i can't help with that",
-                "i'm not able to",
-                "i cannot provide",
-                "i can't provide"
-            ]
-            content_lower = content.lower()
-            if any(phrase in content_lower for phrase in refusal_phrases):
-                print(f"[MAHKEME REFUSAL] LLM refused request. Response: {content[:200]}", file=sys.stderr)
-                print(f"[MAHKEME REFUSAL] System: {system_prompt[:150]}...", file=sys.stderr)
-                print(f"[MAHKEME REFUSAL] User: {user_message[:150]}...", file=sys.stderr)
-                return {
-                    "error": "LLM_REFUSAL",
-                    "refusal_message": content,
-                    "position": "REFUSED",
-                    "confidence": 0.0
-                }
-
-            # AGGRESSIVE JSON CLEANING + FALLBACK
-            content = content.strip()
-            # Markdown code block — extract content inside ```json ... ```
-            if "```json" in content:
-                start = content.find("```json") + 7
-                end = content.find("```", start)
-                if end > start:
-                    content = content[start:end].strip()
-            elif "```" in content:
-                parts = content.split("```")
-                if len(parts) >= 3:
-                    content = parts[1].strip()
-                else:
-                    lines = [l for l in content.split("\n") if not l.strip().startswith("```")]
-                    content = "\n".join(lines).strip()
-            # Extract JSON object from mixed text
-            if "{" in content and "}" in content:
-                start = content.find("{")
-                end = content.rfind("}") + 1
-                json_str = content[start:end].lstrip("\ufeff\u200b\xa0")
+            # JSON ise parse et
+            if raw_text.strip().startswith("{"):
                 try:
-                    return json.loads(json_str)
+                    data = json.loads(raw_text)
+                    if "choices" in data and data["choices"]:
+                        message = data["choices"][0].get("message", {})
+                        # message içinde content veya reasoning_content var
+                        msg_content = message.get("content", "")
+                        reasoning = message.get("reasoning_content", "")
+                        # reasoning varsa onu kullan, yoksa content
+                        if reasoning:
+                            content = reasoning.strip()
+                        elif msg_content:
+                            content = msg_content.strip()
+                        else:
+                            content = _reasoning_temizle(json.dumps(message))
+                        
+                        if content:
+                            return {
+                                "content": content,
+                                "model": data.get("model", ""),
+                                "usage": data.get("usage", {}),
+                                "raw": data
+                            }
                 except json.JSONDecodeError:
-                    pass  # fall through to heuristic parser
-            # JSON yoksa metinden verdict cikar (heuristic fallback)
-            return _parse_verdict_heuristic(content)
-        except json.JSONDecodeError as e:
-            print(f"[LLM JSON ERROR] {e}\nRaw: {content[:500] if content else 'N/A'}", file=sys.stderr)
-            return {"raw_response": content[:2000]}
+                    pass
+            
+            # Düz metin ise
+            content = _reasoning_temizle(raw_text)
+            if content:
+                return {
+                    "content": content,
+                    "model": "",
+                    "usage": {},
+                    "raw": {"text": raw_text}
+                }
+            
+            print(f"{tag} Could not extract content. Raw: {raw_text[:200]}", file=sys.stderr)
+            return {"error": "No content extracted"}
         except Exception as e:
-            print(f"[LLM ERROR] {e}", file=sys.stderr)
-            try:
-                return {"raw_response": resp.text[:500] if resp and hasattr(resp, 'text') else str(e)[:500]}
-            except:
-                return {"error": str(e)}
-
-
+            print(f"{tag} Exception: {e}", file=sys.stderr)
+            return {"error": str(e)}
 class HakikatMahkemesi:
     """4 aşamalı Minimal Viable Debate motoru."""
 

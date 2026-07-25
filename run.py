@@ -70,6 +70,7 @@ def cmd_dongu(adim: int = 5):
 
 def cmd_check():
     """Hizli baglanti kontrolu - servisleri test et."""
+    from config.config import config
     import requests
 
     print("=" * 50)
@@ -77,10 +78,9 @@ def cmd_check():
     print("=" * 50)
 
     checks = [
-        ("9router API", "http://localhost:20128/api/health"),
-        ("Browserless", "http://localhost:3001/json/version"),
-        ("LiteLLM", "http://localhost:4000/health"),
-        ("Open WebUI", "http://localhost:3000"),
+        ("9router API", f"{config.LITELLM_URL}/models"),
+        ("Browserless", f"{config.BROWSERLESS_URL}/json/version"),
+        ("Voicebox", "http://localhost:8001/health"),
     ]
 
     for name, url in checks:

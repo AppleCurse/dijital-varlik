@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 ROOT = Path(__file__).resolve().parent.parent
-ATOM_ROOT = ROOT / "atom-ger\u00e7ek"
+ATOM_ROOT = ROOT / "atom-main"
 
 
 class ATomBridge:

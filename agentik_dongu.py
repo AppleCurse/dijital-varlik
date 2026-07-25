@@ -52,6 +52,7 @@ from mudahale.atom_bridge import get_atom
 from mudahale.pipecat_bridge import get_pipecat
 from mudahale.f5tts_bridge import get_f5tts
 from mudahale.qwen_bridge import get_qwen
+from mudahale.voicebox_bridge import Voicebox, voicebox_konus, voicebox_dinle, voicebox_yaziya_dok
 import socket
 import subprocess
 
@@ -371,27 +372,37 @@ class AgentikDongu:
         agent_s_durum = "OK" if self.agent_s.hazir_mi() else "WARN sunucu yok (powershell agent_s_server.ps1)"
         print(f"  Agent S: {agent_s_durum}")
 
-        # Ses cikisi (TTS)
+        # Ses cikisi (TTS) — Voicebox > F5-TTS > Pipecat > espeak-ng
         print("\n> SES CIKISI")
-        self.ses = _get_tts()
-        if self.ses:
-            print(f"  TTS   : {'OK espeak-ng' if self.ses.hazir_mi() else 'FAIL espeak bulunamadi'}")
-        else:
-            print(f"  TTS   : WARN algi_tts modulu yuklenemedi")
-        pip_ok = self.pipecat and self.pipecat.hazir_mi()
+        self.voicebox = Voicebox()
+        vb_ok = self.voicebox.hazir_mi()
+        print(f"  Voicebox: {'OK http://localhost:8001' if vb_ok else 'WARN servis kapali (docker compose up -d)'}")
+
         f5_ok = self.f5tts and self.f5tts.hazir_mi()
-        print(f"  Pipecat: {'OK CPU mod' if pip_ok else 'WARN GPU gerekli'}")
         print(f"  F5-TTS : {'OK GPU hazir' if f5_ok else 'WARN GPU bekliyor'}")
 
-        # Ses girisi (STT - mikrofon)
+        pip_ok = self.pipecat and self.pipecat.hazir_mi()
+        print(f"  Pipecat: {'OK CPU mod' if pip_ok else 'WARN GPU gerekli'}")
+
+        self.ses = _get_tts()  # espeak-ng fallback
+        if self.ses and self.ses.hazir_mi():
+            print(f"  espeak : OK (yedek)")
+        else:
+            print(f"  espeak : YOK (yedek)")
+
+        # Ses girisi (STT) — Voicebox > faster-whisper mikrofon
         print("\n> SES GIRISI (MIKROFON)")
+        if vb_ok:
+            print(f"  STT   : OK Voicebox (primary)")
+        else:
+            print(f"  STT   : WARN Voicebox kapali, faster-whisper deneniyor...")
         try:
             from algi.algi_stt import get_mikrofon
             self.mikrofon = get_mikrofon()
-            if self.mikrofon.hazir_mi():
-                print(f"  STT   : OK faster-whisper ({self.mikrofon.model_boyutu})")
+            if self.mikrofon and self.mikrofon.hazir_mi():
+                print(f"  STT   : OK faster-whisper ({self.mikrofon.model_boyutu}) (yedek)")
             else:
-                print(f"  STT   : FAIL model yuklenemedi")
+                print(f"  STT   : WARN model yuklenemedi")
         except Exception as e:
             self.mikrofon = None
             print(f"  STT   : WARN {e}")
@@ -400,9 +411,11 @@ class AgentikDongu:
         print("\n> MESAJLASMA")
         self.openclaw = OpenClawBridge()
         self.agentreach = AgentReachBridge()
-        oh_ok = False
-        print(f"  OpenHands : {'OK API hazir' if oh_ok else 'WARN API kapali'}")
-        print(f"  OpenClaw   : {'OK repo var' if self.openclaw.hazir_mi() else 'PENDING repo klonlanacak'}")
+        oc_status = self.openclaw.status
+        print(f"  OpenClaw: Telegram={'AKTIF' if oc_status['telegram'] else 'TOKEN YOK'}, WhatsApp={'AKTIF' if oc_status['whatsapp'] else '.env eksik'}, X={'AKTIF' if oc_status['x_twitter'] else '.env eksik'}")
+        # Telegram bot'u arka planda baslat
+        if self.openclaw.hazir_mi():
+            self.openclaw.telegram_baslat()
         print(f"  Agent-Reach: {'OK repo var' if self.agentreach.hazir_mi() else 'PENDING repo klonlanacak'}")
 
         # Görü
@@ -738,13 +751,33 @@ class AgentikDongu:
         sure = (datetime.now() - baslangic).total_seconds()
         tum_fazlar["sure"] = sure
 
-        # ── Sesli geri bildirim ──
-        if sonuc["status"] == "success" and self.ses:
-            try:
-                mesaj = sonuc.get("message", "")[:200] or "Gorev tamamlandi"
-                self.ses.konus(mesaj)
-            except Exception:
-                pass
+        # ── Sesli geri bildirim ── Voicebox > F5-TTS > Pipecat > espeak
+        if sonuc["status"] == "success":
+            mesaj = sonuc.get("message", "")[:200] or "Gorev tamamlandi"
+            # 1. Voicebox (primary)
+            if self.voicebox and self.voicebox.hazir_mi():
+                try:
+                    voicebox_konus(mesaj)
+                except Exception:
+                    pass
+            # 2. F5-TTS
+            elif self.f5tts and self.f5tts.hazir_mi():
+                try:
+                    self.f5tts.seslendir(mesaj)
+                except Exception:
+                    pass
+            # 3. Pipecat
+            elif self.pipecat and self.pipecat.hazir_mi():
+                try:
+                    self.pipecat.seslendir(mesaj)
+                except Exception:
+                    pass
+            # 4. espeak-ng fallback
+            elif self.ses and self.ses.hazir_mi():
+                try:
+                    self.ses.konus(mesaj)
+                except Exception:
+                    pass
 
         print(f"\n{'-'*60}")
         print(f"TAMAMLANDI ({sure:.1f}s) - {sonuc['status']}")
@@ -841,6 +874,10 @@ class AgentikDongu:
         }
 
     def kapat(self):
+        if hasattr(self, 'openclaw') and self.openclaw:
+            try:
+                self.openclaw.durdur()
+            except: pass
         self.letta.oturum_kapat(self.session_id, {"kapanis": "normal"})
         self.mem0.olay_kaydet(
             f"Agentik Dongu kapatildi. {self.adim_sayisi} adim, {self.iyilesen_hata} iyilesen hata.",

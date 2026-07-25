@@ -147,12 +147,14 @@ def _sistem_durumu() -> str:
     parts = []
     try:
         import requests
-        r = requests.get("http://172.23.96.1:20128/api/health", timeout=2)
+        from config.config import config
+        r = requests.get(f"{config.LITELLM_URL}/models", timeout=2)
         parts.append("9router: AKTIF" if r.status_code == 200 else "9router: KAPALI")
     except: parts.append("9router: KAPALI")
     try:
         import requests
-        r = requests.get("http://localhost:3004/json/version", timeout=2)
+        from config.config import config
+        r = requests.get(f"{config.BROWSERLESS_URL}/json/version", timeout=2)
         parts.append("Browser: AKTIF" if r.status_code == 200 else "Browser: KAPALI")
     except: parts.append("Browser: KAPALI")
     try:

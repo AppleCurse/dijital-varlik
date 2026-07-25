@@ -2,7 +2,9 @@ import os
 import subprocess
 from dotenv import load_dotenv
 
-load_dotenv()
+# config/.env dosyasini yukle (bulundugu dizine gore)
+_env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+load_dotenv(_env_path)
 
 
 def _windows_ip() -> str:

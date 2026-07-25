@@ -132,45 +132,69 @@ class IntegratedDongu:
         from karar.smolagents_bridge import get_smol
         from mudahale.web_tools import web_fetch, web_extract_title, web_screenshot, web_navigate
         from mudahale.browser_use_bridge import get_browser_use
-        from mudahale.skyvern_bridge import get_skyvern
         from mudahale.atom_bridge import get_atom
 
         self.web_tools = [web_fetch, web_extract_title, web_screenshot, web_navigate]
         self.smol = get_smol(tools=self.web_tools)
         self.browser_use = get_browser_use()
-        self.skyvern = get_skyvern()
         self.atom = get_atom()
+
+        # Skyvern: opsiyonel (EC2'da ayri servis)
+        self.skyvern = None
+        try:
+            from mudahale.skyvern_bridge import get_skyvern
+            self.skyvern = get_skyvern()
+        except ImportError:
+            print("  Skyvern  : YOK (opsiyonel, EC2'da)")
+        except Exception as e:
+            print(f"  Skyvern  : HATA ({e})")
 
         smol_ok = self.smol.hazir_mi()
         browser_ok = self.browser_use.hazir_mi()
 
         print(f"  smol     : {'OK' if smol_ok else 'FAIL'} - {len(self.web_tools)} arac")
         print(f"  Browser  : {'OK' if browser_ok else 'FAIL'} - CDP")
-        print(f"  Skyvern  : {'OK' if self.skyvern.hazir_mi() else 'FAIL'}")
         print(f"  ATOM     : {'OK' if self.atom.hazir_mi() else 'FAIL'} + ChromaDB")
 
         state.update_service("smolagents", ready=smol_ok, status="ready" if smol_ok else "error")
         state.update_service("browser_use", ready=browser_ok, status="ready" if browser_ok else "error")
-        state.update_service("skyvern", ready=self.skyvern.hazir_mi(), status="ready")
-        state.update_service("atom", ready=self.atom.hazir_mi(), status="ready")
+        state.update_service("skyvern", ready=self.skyvern is not None)
+        state.update_service("atom", ready=self.atom.hazir_mi(), status="ready" if self.atom.hazir_mi() else "error")
 
         # ── Duyular ──
         from mudahale.f5tts_bridge import get_f5tts
         from mudahale.qwen_bridge import get_qwen
-        from mudahale.airi_bridge import get_airi
         from mudahale.pipecat_bridge import get_pipecat
 
         self.f5tts = get_f5tts()
         self.qwen = get_qwen()
-        self.airi = get_airi()
         self.pipecat = get_pipecat()
+
+        # AIRI: opsiyonel (WebGPU 3D avatar)
+        self.airi = None
+        try:
+            from mudahale.airi_bridge import get_airi
+            self.airi = get_airi()
+        except ImportError:
+            print("  AIRI     : YOK (opsiyonel, WebGPU)")
+        except Exception as e:
+            print(f"  AIRI     : HATA ({e})")
+
+        # Voicebox: yeni ses motoru (Jamie Pine Voicebox REST API)
+        from mudahale.voicebox_bridge import Voicebox, voicebox_konus, voicebox_dinle, voicebox_yaziya_dok, VOICEBOX_URL
+        self.voicebox_client = Voicebox()
+        self.voicebox = self.voicebox_client.hazir_mi()
+        self.voicebox_konus = voicebox_konus
+        self.voicebox_dinle = voicebox_dinle
+        self.voicebox_yaziya_dok = voicebox_yaziya_dok
+        self.voicebox_url = VOICEBOX_URL
+        print(f"  Voicebox : {'OK TTS+STT' if self.voicebox else 'WARN servis kapali'} - {VOICEBOX_URL}")
 
         f5_ok = self.f5tts and self.f5tts.hazir_mi()
         qwen_ok = self.qwen and self.qwen.hazir_mi()
 
         print(f"  F5-TTS   : {'OK GPU' if f5_ok else 'FAIL'}")
         print(f"  Qwen-VL  : {'OK GPU' if qwen_ok else 'FAIL'}")
-        print(f"  AIRI     : {'OK WebGPU' if self.airi and self.airi.hazir_mi() else 'FAIL'}")
         print(f"  Pipecat  : {'OK' if self.pipecat and self.pipecat.hazir_mi() else 'FAIL'}")
 
         state.update_service("f5tts", ready=f5_ok, status="ready" if f5_ok else "error")

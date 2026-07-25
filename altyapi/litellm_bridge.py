@@ -1,86 +1,122 @@
 """
 Katman 4 — LiteLLM Köprüsü
-Tüm LLM çağrıları buradan geçer. Rate limiting, fallback, retry yönetir.
+Tüm LLM çağrıları buradan geçer.
+4 provider fallback: DeepSeek → Groq → NVIDIA → OpenRouter
 """
 import requests
 import json
-
-def _reasoning_temizle(ham_yanit: str) -> str:
-    """Reasoning model <think> bloklarini ayiklar."""
-    import re
-    for desen in [r'<think>(.*?)</think>', r'<thinking>(.*?)</thinking>', r'<reasoning>(.*?)</reasoning>']:
-        ham_yanit = re.sub(desen, '', ham_yanit, flags=re.DOTALL | re.IGNORECASE)
-    temiz = ham_yanit.strip()
-    if len(temiz) < 5 and len(ham_yanit) > 500:
-        return ""  # reasoning yarida kesilmis, bos cevap
-    return temiz
-
+import re
+import os
 from typing import Optional
 from config.config import config
 
 
+def _reasoning_temizle(ham_yanit: str) -> str:
+    """Reasoning model <think> bloklarini ayiklar."""
+    for desen in [r'<think>(.*?)</think>', r'<thinking>(.*?)</thinking>', r'<reasoning>(.*?)</reasoning>']:
+        ham_yanit = re.sub(desen, '', ham_yanit, flags=re.DOTALL | re.IGNORECASE)
+    temiz = ham_yanit.strip()
+    if len(temiz) < 5 and len(ham_yanit) > 500:
+        return ""
+    return temiz
+
+
+# ── Provider Fallback Zinciri (sira ONEMLI) ──
+
+PROVIDERS = [
+    {
+        "name": "deepseek",
+        "url":   os.getenv("DEEPSEEK_URL", "https://api.deepseek.com/v1"),
+        "key":   os.getenv("DEEPSEEK_API_KEY", ""),
+        "model": os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+    },
+    {
+        "name": "groq",
+        "url":   os.getenv("GROQ_URL", "https://api.groq.com/openai/v1"),
+        "key":   os.getenv("GROQ_API_KEY", ""),
+        "model": os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile"),
+    },
+    {
+        "name": "nvidia",
+        "url":   os.getenv("NVIDIA_URL", "https://integrate.api.nvidia.com/v1"),
+        "key":   os.getenv("NVIDIA_API_KEY", ""),
+        "model": os.getenv("NVIDIA_MODEL", "nvidia/llama-3.1-nemotron-70b-instruct"),
+    },
+    {
+        "name": "openrouter",
+        "url":   os.getenv("OPENROUTER_URL", "https://openrouter.ai/api/v1"),
+        "key":   os.getenv("OPENROUTER_API_KEY", ""),
+        "model": os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
+    },
+]
+
+
 class LiteLLMBridge:
-    """LiteLLM proxy üzerinden tüm LLM erişimini yönetir."""
+    """Coklu provider fallback'li LLM erisimi."""
 
     def __init__(self):
-        self.base_url = config.LITELLM_URL.rstrip("/")
-        self.api_key = config.LITELLM_KEY
+        self.providers = PROVIDERS
         self.default_model = config.MAHKEME_MODEL
         self.fallback_model = config.FALLBACK_MODEL
 
     def health(self) -> bool:
-        """9router sağlık kontrolü (/v1/health yok, /models kullanılır)."""
-        try:
-            resp = requests.get(
-                f"{self.base_url}/models",
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                timeout=5
-            )
-            return resp.status_code == 200
-        except Exception:
-            return False
+        """En az bir provider saglikli mi?"""
+        for p in self.providers:
+            try:
+                resp = requests.get(
+                    f"{p['url'].rstrip('/')}/models",
+                    headers={"Authorization": f"Bearer {p['key']}"},
+                    timeout=5
+                )
+                if resp.status_code == 200:
+                    return True
+            except Exception:
+                continue
+        return False
 
     def models(self) -> list:
-        """Kullanılabilir modelleri listele."""
-        try:
-            resp = requests.get(
-                f"{self.base_url}/models",
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                timeout=10
-            )
-            return resp.json().get("data", [])
-        except Exception as e:
-            print(f"[LiteLLM] Model listesi alınamadı: {e}")
-            return []
+        """Tum provider'lardaki modelleri listele."""
+        all_models = []
+        for p in self.providers:
+            try:
+                resp = requests.get(
+                    f"{p['url'].rstrip('/')}/models",
+                    headers={"Authorization": f"Bearer {p['key']}"},
+                    timeout=10
+                )
+                data = resp.json().get("data", [])
+                for m in data:
+                    m["_provider"] = p["name"]
+                all_models.extend(data)
+            except Exception:
+                continue
+        return all_models
 
     def chat(self, messages: list, model: str = None,
              temperature: float = 0.3, max_tokens: int = 4096,
              response_format: dict = None, timeout: int = 120) -> Optional[dict]:
         """
-        Chat completion çağrısı. Önce primary model, başarısız olursa fallback.
+        Chat completion — 4 provider fallback zinciri ile.
+
+        Sira: DeepSeek → Groq → NVIDIA → OpenRouter
+        Her provider basarisiz olursa siradakine gecer.
 
         Returns:
-            {
-                "content": str,
-                "model": str,
-                "usage": dict,
-                "raw": dict
-            }
+            {"content": str, "model": str, "provider": str, "usage": dict}
         """
-        models_to_try = [model or self.default_model]
-        if models_to_try[0] != self.fallback_model:
-            models_to_try.append(self.fallback_model)
-
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-
         last_error = None
 
-        for m in models_to_try:
+        for provider in self.providers:
+            if not provider["key"]:
+                continue
+
+            url = f"{provider['url'].rstrip('/')}/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {provider['key']}",
+                "Content-Type": "application/json"
+            }
             payload = {
-                "model": m,
+                "model": model or provider["model"],
                 "messages": messages,
                 "temperature": temperature,
                 "max_tokens": max_tokens,
@@ -90,45 +126,28 @@ class LiteLLMBridge:
                 payload["response_format"] = response_format
 
             try:
-                resp = requests.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=headers,
-                    json=payload,
-                    timeout=timeout
-                )
+                resp = requests.post(url, headers=headers, json=payload, timeout=timeout)
                 resp.raise_for_status()
                 data = resp.json()
                 choice = data["choices"][0]
 
                 return {
                     "content": _reasoning_temizle(choice["message"]["content"]),
-                    "model": data.get("model", m),
+                    "model": data.get("model", provider["model"]),
+                    "provider": provider["name"],
                     "usage": data.get("usage", {}),
                     "raw": data
                 }
             except Exception as e:
                 last_error = e
-                print(f"[LiteLLM] {m} başarısız, sonraki deneniyor... ({e})")
+                print(f"[LLM] {provider['name']} basarisiz → siradaki... ({type(e).__name__})")
                 continue
 
-        # DeepSeek fallback (9Router yoksa)
-        try:
-            from altyapi.ai_bridge import ai
-            r = ai.deepseek_chat(messages, max_tokens=max_tokens)
-            if r["status"] == "ok":
-                return {"content": r["content"], "model": "deepseek-chat", "usage": {}}
-        except Exception as e:
-            print(f"[LiteLLM] DeepSeek fallback da başarısız: {e}")
-
-        print(f"[LiteLLM] Tüm modeller başarısız: {last_error}")
+        print(f"[LLM] TUM PROVIDER'LAR BASARISIZ: {last_error}")
         return None
 
     def is_alive(self) -> bool:
-        """Tam bağlantı kontrolü (health + models)."""
-        if not self.health():
-            return False
-        models = self.models()
-        return len(models) > 0
+        return self.health()
 
 
 # Global instance

@@ -1,31 +1,9 @@
 model_list:
-  # Deepseek combo: akilli (mahkeme, kod)
-  # Karisik: genel (cevap veren)
-  - model_name: "karisik"
+  - model_name: "hepsi"
     litellm_params:
-      model: "openai/karisik"
-      api_base: "http://172.17.0.1:20128/v1"
-      api_key: "sk-5762d1405cedb9c7-vtowrm-d6ad8046"
-
-  - model_name: "deepseekcombo"
-    litellm_params:
-      model: "openai/deepseekcombo"
-      api_base: "http://172.17.0.1:20128/v1"
-      api_key: "sk-5762d1405cedb9c7-vtowrm-d6ad8046"
-
-  # Mycombo: hizli (web, browser)
-  - model_name: "mycombo"
-    litellm_params:
-      model: "openai/mycombo"
-      api_base: "http://172.17.0.1:20128/v1"
-      api_key: "sk-5762d1405cedb9c7-vtowrm-d6ad8046"
-
-  # Dijitalvarlik: genel (fallback)
-  - model_name: "dijitalvarlik"
-    litellm_params:
-      model: "openai/dijitalvarlik"
-      api_base: "http://172.17.0.1:20128/v1"
-      api_key: "sk-5762d1405cedb9c7-vtowrm-d6ad8046"
+      model: "openai/hepsi"
+      api_base: "http://172.26.32.1:20128/v1"
+      api_key: "sk-58bbadde44171bff-6jq5bl-7378c3af"
 
 general_settings:
   master_key: "omniroute"

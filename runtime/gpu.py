@@ -12,7 +12,14 @@ Kullanım:
         result = model(image)
 """
 import threading
-import torch
+
+try:
+    import torch
+    _CUDA = torch.cuda.is_available()
+except ImportError:
+    torch = None
+    _CUDA = False
+
 from runtime.events import EventType
 from runtime.event_bus import Event, bus
 
@@ -22,9 +29,9 @@ class GpuMutex:
 
     def __init__(self):
         self._lock = threading.Lock()
-        self._device = "cuda" if torch.cuda.is_available() else "cpu"
+        self._device = "cuda" if _CUDA else "cpu"
         self._total_mb = 0
-        if self._device == "cuda":
+        if _CUDA and torch:
             self._total_mb = torch.cuda.get_device_properties(0).total_memory / 1e6
 
     @property
@@ -37,7 +44,7 @@ class GpuMutex:
 
     @property
     def memory_used_mb(self) -> float:
-        if self._device == "cuda":
+        if _CUDA and torch:
             return torch.cuda.memory_allocated() / 1e6
         return 0.0
 

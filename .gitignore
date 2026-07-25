@@ -35,3 +35,11 @@ Qwen2.5-VL-main/
 Qwen3-VL-main/
 atom-main/
 skyvern-mainls/
+
+alpha-avatar/
+openclaw-main/
+OmniRoute/
+voicebox/
+*.bak
+*.yedek*
+.env*

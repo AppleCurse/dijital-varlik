@@ -141,7 +141,8 @@ def _aspasia_durum() -> str:
     try:
         import requests, torch, psutil
         parts = []
-        r = requests.get("http://172.23.96.1:20128/api/health", timeout=2)
+        from config.config import config
+        r = requests.get(f"{config.LITELLM_URL}/models", timeout=2)
         parts.append("Zihin: aktif" if r.status_code == 200 else "Zihin: dinlenmede")
         if torch.cuda.is_available():
             parts.append(f"Görü: {torch.cuda.get_device_name(0).replace('NVIDIA ','')}")

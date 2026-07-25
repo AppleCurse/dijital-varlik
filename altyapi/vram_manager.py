@@ -18,7 +18,14 @@ Kullanım:
 """
 import gc
 import threading
-import torch
+
+try:
+    import torch
+    _CUDA = torch.cuda.is_available()
+except ImportError:
+    torch = None
+    _CUDA = False
+
 from runtime.event_bus import Event, bus
 from runtime.events import EventType
 
@@ -38,9 +45,9 @@ class VRAMManager:
         self._loaded: dict = {}          # model_id → model_obj
         self._current: str | None = None  # şu an GPU'da olan model
         self._max_vram_mb = max_vram_mb
-        self._device = "cuda" if torch.cuda.is_available() else "cpu"
+        self._device = "cuda" if _CUDA else "cpu"
         self._total_mb = 0
-        if self._device == "cuda":
+        if _CUDA and torch:
             self._total_mb = torch.cuda.get_device_properties(0).total_memory / 1e6
 
     # ── Temel Özellikler ──
@@ -55,13 +62,13 @@ class VRAMManager:
 
     @property
     def memory_allocated_mb(self) -> float:
-        if self._device == "cuda":
+        if _CUDA and torch:
             return torch.cuda.memory_allocated() / 1e6
         return 0.0
 
     @property
     def memory_reserved_mb(self) -> float:
-        if self._device == "cuda":
+        if _CUDA and torch:
             return torch.cuda.memory_reserved() / 1e6
         return 0.0
 
@@ -147,7 +154,7 @@ class VRAMManager:
         if self._current == model_id:
             self._current = None
 
-        if self._device == "cuda":
+        if _CUDA and torch:
             torch.cuda.empty_cache()
         gc.collect()
 

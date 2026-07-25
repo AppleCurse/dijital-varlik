@@ -25,20 +25,19 @@ class SmolAgentBridge:
         self._init_agent()
 
     def _init_agent(self):
-        """smolagents agent'ı LiteLLM proxy ile başlat."""
+        """smolagents agent'i LiteLLM proxy (9Router) ile baslat."""
         try:
             from smolagents import CodeAgent, LiteLLMModel
 
-            # LiteLLM requires provider prefix (openai/) for custom endpoints
-            # Model ID: kr/claude-sonnet-4.5 → openai/kr/claude-sonnet-4.5
+            # 9Router uzerinden model (config.py'den al)
             model_id = config.MAHKEME_MODEL
-            if not model_id.startswith("openai/"):
-                model_id = f"openai/{model_id}"
+            api_base = config.LITELLM_URL.rstrip('/')
+            api_key = config.LITELLM_KEY
 
             self.model = LiteLLMModel(
-                model_id=model_id,
-                api_base="http://localhost:4000/v1",
-                api_key="omniroute",
+                model_id=f"openai/{model_id}",
+                api_base=api_base,
+                api_key=api_key,
             )
             self.agent = CodeAgent(
                 tools=self._custom_tools,
@@ -46,7 +45,7 @@ class SmolAgentBridge:
                 add_base_tools=True,
             )
             self._agent_ready = True
-            print(f"[smolagents] CodeAgent ready with {len(self._custom_tools)} tools")
+            print(f"[smolagents] CodeAgent ready with {len(self._custom_tools)} tools @ {api_base}")
         except Exception as e:
             print(f"[smolagents] Init error: {e}")
             import traceback
