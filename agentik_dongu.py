@@ -52,6 +52,7 @@ from mudahale.atom_bridge import get_atom
 from mudahale.pipecat_bridge import get_pipecat
 from mudahale.f5tts_bridge import get_f5tts
 from mudahale.qwen_bridge import get_qwen
+from mudahale.openclaw_bridge import OpenClawBridge, get_openclaw
 import socket
 import subprocess
 
@@ -188,61 +189,6 @@ def _get_tts():
         return get_tts()
     except Exception:
         return None
-
-
-# ================================================================
-# OPENCLAW KOPRUSU (Mesajlasma — WhatsApp/Telegram)
-# ================================================================
-
-class OpenClawBridge:
-    """7/24 mesajlasma istihbarati. WhatsApp/Telegram okur, yanitlar."""
-
-    def __init__(self):
-        self._aktif = False
-        self._claw_yolu = Path.home() / "dijital-varlik" / "openclaw-main"
-
-    def hazir_mi(self) -> bool:
-        return self._claw_yolu.exists()
-
-    def dinle_baslat(self):
-        """Arka planda mesaj dinlemeyi baslat — simdilik stub."""
-        if not self.hazir_mi():
-            return {"status": "error", "message": "OpenClaw repo yok"}
-        self._aktif = True
-        return {"status": "success", "message": "OpenClaw dinleme basladi (stub)"}
-
-    def gelen_mesaj_var_mi(self) -> Optional[dict]:
-        """Yeni mesaj var mi kontrol et — stub."""
-        return None
-
-    def yanit_gonder(self, metin: str, platform: str = "whatsapp") -> dict:
-        """Platform uzerinden yanit gonder — stub."""
-        return {"status": "success", "message": f"[{platform}] stub: {metin[:50]}"}
-
-
-# ================================================================
-# AGENT-REACH KOPRUSU (Sosyal Medya Istihbarati)
-# ================================================================
-
-class AgentReachBridge:
-    """Derin sosyal medya istihbarati. BettaFish'ten farkli kaynaklar."""
-
-    def __init__(self):
-        self._reach_yolu = Path.home() / "dijital-varlik" / "agent-reach-main"
-
-    def hazir_mi(self) -> bool:
-        return self._reach_yolu.exists()
-
-    def tara(self, konu: str, kaynaklar: list = None) -> dict:
-        """Sosyal medyada derin tarama — stub."""
-        if not self.hazir_mi():
-            return {"status": "error", "message": "Agent-Reach repo yok"}
-        return {
-            "status": "success",
-            "konu": konu,
-            "sonuc": f"Agent-Reach stub: '{konu}' taramasi baslatildi",
-            "kaynaklar": kaynaklar or ["reddit", "twitter", "tiktok"],
-        }
 
 
 # ================================================================
@@ -398,12 +344,13 @@ class AgentikDongu:
 
         # Mesajlasma
         print("\n> MESAJLASMA")
-        self.openclaw = OpenClawBridge()
-        self.agentreach = AgentReachBridge()
+        self.openclaw = get_openclaw()
+        self.agentreach = None  # Agent-Reach: repo klonlanmadi, bridge yok
         oh_ok = False
+        token_durum = "token hazir" if self.openclaw.token_set else "token yok"
         print(f"  OpenHands : {'OK API hazir' if oh_ok else 'WARN API kapali'}")
-        print(f"  OpenClaw   : {'OK repo var' if self.openclaw.hazir_mi() else 'PENDING repo klonlanacak'}")
-        print(f"  Agent-Reach: {'OK repo var' if self.agentreach.hazir_mi() else 'PENDING repo klonlanacak'}")
+        print(f"  OpenClaw   : {'OK ' + token_durum if self.openclaw.hazir_mi() else 'WARN ' + token_durum}")
+        print(f"  Agent-Reach: WARN bridge henuz yok")
 
         # Görü
         print("\n> GORU")
