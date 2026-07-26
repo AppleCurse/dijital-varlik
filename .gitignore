@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# Bellek verileri (hassas olabilir)
+bellek/*.jsonl
+bellek/*.json
+bellek/*.db
+bellek/*.sqlite
+
+# Config (.env hassas bilgiler içerir)
+config/.env
+config/*.env
+*.env.local
+
+# Log dosyaları
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OmniRouter runtime
+.omniroute/
