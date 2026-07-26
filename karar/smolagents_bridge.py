@@ -30,12 +30,12 @@ class SmolAgentBridge:
             from smolagents import CodeAgent, LiteLLMModel
 
             # 9Router uzerinden model (config.py'den al)
-            model_id = config.MAHKEME_MODEL
+            model_id = "aspasia"
             api_base = config.LITELLM_URL.rstrip('/')
             api_key = config.LITELLM_KEY
 
             self.model = LiteLLMModel(
-                model_id=f"openai/{model_id}",
+                model_id="openai/aspasia",
                 api_base=api_base,
                 api_key=api_key,
             )

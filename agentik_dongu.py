@@ -53,6 +53,7 @@ from mudahale.pipecat_bridge import get_pipecat
 from mudahale.f5tts_bridge import get_f5tts
 from mudahale.qwen_bridge import get_qwen
 from mudahale.voicebox_bridge import Voicebox, voicebox_konus, voicebox_dinle, voicebox_yaziya_dok
+from mudahale.openclaw_bridge import OpenClawBridge, get_openclaw
 import socket
 import subprocess
 
@@ -411,12 +412,10 @@ class AgentikDongu:
         print("\n> MESAJLASMA")
         self.openclaw = OpenClawBridge()
         self.agentreach = AgentReachBridge()
-        oc_status = self.openclaw.status
-        print(f"  OpenClaw: Telegram={'AKTIF' if oc_status['telegram'] else 'TOKEN YOK'}, WhatsApp={'AKTIF' if oc_status['whatsapp'] else '.env eksik'}, X={'AKTIF' if oc_status['x_twitter'] else '.env eksik'}")
-        # Telegram bot'u arka planda baslat
-        if self.openclaw.hazir_mi():
-            self.openclaw.telegram_baslat()
-        print(f"  Agent-Reach: {'OK repo var' if self.agentreach.hazir_mi() else 'PENDING repo klonlanacak'}")
+        self.openclaw = get_openclaw()
+        self.agentreach = None
+        print(f"  OpenClaw: {"TOKEN HAZIR" if self.openclaw.hazir_mi() else "TOKEN YOK"}")
+        print(f"  Agent-Reach: WARN bridge henuz yok")
 
         # Görü
         print("\n> GORU")

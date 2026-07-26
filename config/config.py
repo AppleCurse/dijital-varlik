@@ -31,10 +31,10 @@ class Config:
     LITELLM_URL = os.getenv("LITELLM_URL", f"http://{_ROUTER_HOST}:20128/v1")
     LITELLM_KEY = os.getenv("LITELLM_KEY", "sk-58bbadde44171bff-6jq5bl-7378c3af")
 
-    MAHKEME_MODEL = os.getenv("MAHKEME_MODEL", "karisik")
-    FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "karisik")
+    MAHKEME_MODEL = os.getenv("MAHKEME_MODEL", "aspasia")
+    FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "aspasia")
     KOD_MODEL = os.getenv("KOD_MODEL", "dijitalvarlik")
-    WEB_MODEL = os.getenv("WEB_MODEL", "karisik")
+    WEB_MODEL = os.getenv("WEB_MODEL", "aspasia")
 
     # Servisler
     BROWSERLESS_URL = os.getenv("BROWSERLESS_URL", "http://localhost:3004")
