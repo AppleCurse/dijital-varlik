@@ -61,7 +61,25 @@ import subprocess
 # AGENT S KOPRUSU — Windows Masaustu Kontrolu
 # ================================================================
 
+
+# Keywords for AgentSBridge.calistir
+EXCEL_KEYWORDS = ("excel", "spreadsheet", ".xlsx")
+WORD_KEYWORDS = ("word", "docx")
+NOTEPAD_KEYWORDS = ("notepad", "not defteri")
+CALC_KEYWORDS = ("hesap", "calc")
+BROWSER_KEYWORDS = ("tarayici", "browser", "chrome")
+SCREENSHOT_KEYWORDS = ("ekran", "goruntu", "screenshot")
+TIME_KEYWORDS = ("saat", "tarih", "zaman")
+
+# Keywords for gorev_tipini_belirle
+WEB_KEYWORDS = ("site", "web", "tarayici", "browser", "http", "tikla", "sayfa", "form", "indir", "download", "url", "link", "ekran goruntusu", "screenshot", "gez", "dolas")
+MASAUSTU_KEYWORDS = ("excel", "word", "dosya", "klasor", "fare", "klavye", "masaustu", "pencere", "kaydet", "notepad", "hesap makinesi", "cmd", "powershell", "agent s")
+ANALIZ_KEYWORDS = ("analiz", "rapor", "ozetle", "karsilastir", "istatistik", "grafik", "tablo", "veri", "arastir", "incele")
+ISTIHBARAT_KEYWORDS = ("gundem", "haber", "sosyal medya", "tara", "twitter", "reddit", "tiktok", "instagram", "trend", "viral", "sentiment", "duygu analizi", "public opinion")
+KOD_KEYWORDS = ("kod", "python", "script", "hesapla", "fonksiyon", "program", "debug", "fix", "duzelt")
+
 class AgentSBridge:
+
     """WSL'den Windows masaustune TCP koprusu (fare, klavye, uygulama)."""
 
     def __init__(self, host: str = None, port: int = 9999):
@@ -108,7 +126,7 @@ class AgentSBridge:
         g = gorev.lower()
 
         # Excel
-        if any(k in g for k in ["excel", "spreadsheet", ".xlsx"]):
+        if any(k in g for k in EXCEL_KEYWORDS):
             r = self._gonder({"action": "open", "target": "excel"})
             dosya = re.search(r'["\']?([\w\-\s]+\.xlsx?)["\']?', gorev)
             if dosya:
@@ -120,22 +138,22 @@ class AgentSBridge:
             return {"status": "success", "message": f"Excel acildi: {r.get('result', '')}"}
 
         # Word
-        if any(k in g for k in ["word", "docx"]):
+        if any(k in g for k in WORD_KEYWORDS):
             r = self._gonder({"action": "open", "target": "word"})
             return {"status": "success", "message": f"Word acildi: {r.get('result', '')}"}
 
         # Notepad
-        if any(k in g for k in ["notepad", "not defteri"]):
+        if any(k in g for k in NOTEPAD_KEYWORDS):
             r = self._gonder({"action": "open", "target": "notepad"})
             return {"status": "success", "message": f"Notepad acildi: {r.get('result', '')}"}
 
         # Hesap makinesi
-        if any(k in g for k in ["hesap", "calc"]):
+        if any(k in g for k in CALC_KEYWORDS):
             r = self._gonder({"action": "open", "target": "calc"})
             return {"status": "success", "message": f"Hesap makinesi acildi: {r.get('result', '')}"}
 
         # Tarayici
-        if any(k in g for k in ["tarayici", "browser", "chrome"]):
+        if any(k in g for k in BROWSER_KEYWORDS):
             r = self._gonder({"action": "open", "target": "browser", "text": "https://example.com"})
             return {"status": "success", "message": f"Tarayici acildi: {r.get('result', '')}"}
 
@@ -154,13 +172,13 @@ class AgentSBridge:
                 return {"status": "success", "message": f"Tiklandi: {match.group(1)},{match.group(2)}"}
 
         # Ekran goruntusu
-        if any(k in g for k in ["ekran", "goruntu", "screenshot"]):
+        if any(k in g for k in SCREENSHOT_KEYWORDS):
             r = self._gonder({"action": "screen"})
             msg = f"Ekran goruntusu alindi ({len(r.get('result',''))} chars base64)" if r.get("status") == "ok" else r.get("result", "hata")
             return {"status": "success" if r.get("status") == "ok" else "error", "message": msg}
 
         # Saat/tarih — system komutu
-        if any(k in g for k in ["saat", "tarih", "zaman"]):
+        if any(k in g for k in TIME_KEYWORDS):
             simdi = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             return {"status": "success", "message": f"Su an: {simdi}"}
 
@@ -263,26 +281,12 @@ def gorev_tipini_belirle(gorev: str) -> GorevTipi:
     """LLM kullanmadan, anahtar kelime ile hizli tip tespiti."""
     g = gorev.lower()
 
-    web_keywords = ["site", "web", "tarayici", "browser", "http", "tikla",
-                    "sayfa", "form", "indir", "download", "url", "link",
-                    "ekran goruntusu", "screenshot", "gez", "dolas"]
-    masaustu_keywords = ["excel", "word", "dosya", "klasor", "fare", "klavye",
-                         "masaustu", "pencere", "kaydet", "notepad",
-                         "hesap makinesi", "cmd", "powershell", "agent s"]
-    analiz_keywords = ["analiz", "rapor", "ozetle", "karsilastir", "istatistik",
-                       "grafik", "tablo", "veri", "arastir", "incele"]
-    istihbarat_keywords = ["gundem", "haber", "sosyal medya", "tara", "twitter",
-                           "reddit", "tiktok", "instagram", "trend", "viral",
-                           "sentiment", "duygu analizi", "public opinion"]
-    kod_keywords = ["kod", "python", "script", "hesapla", "fonksiyon",
-                    "program", "debug", "fix", "duzelt"]
-
     scores = {
-        GorevTipi.WEB: sum(1 for kw in web_keywords if kw in g),
-        GorevTipi.MASAUSTU: sum(1 for kw in masaustu_keywords if kw in g),
-        GorevTipi.ANALIZ: sum(1 for kw in analiz_keywords if kw in g),
-        GorevTipi.KOD: sum(1 for kw in kod_keywords if kw in g),
-        GorevTipi.ISTIHBARAT: sum(1 for kw in istihbarat_keywords if kw in g),
+        GorevTipi.WEB: sum(1 for kw in WEB_KEYWORDS if kw in g),
+        GorevTipi.MASAUSTU: sum(1 for kw in MASAUSTU_KEYWORDS if kw in g),
+        GorevTipi.ANALIZ: sum(1 for kw in ANALIZ_KEYWORDS if kw in g),
+        GorevTipi.KOD: sum(1 for kw in KOD_KEYWORDS if kw in g),
+        GorevTipi.ISTIHBARAT: sum(1 for kw in ISTIHBARAT_KEYWORDS if kw in g),
     }
 
     best = max(scores, key=scores.get)
@@ -411,10 +415,10 @@ class AgentikDongu:
         print("\n> MESAJLASMA")
         self.openclaw = OpenClawBridge()
         self.agentreach = AgentReachBridge()
-        oc_status = self.openclaw.status
-        print(f"  OpenClaw: Telegram={'AKTIF' if oc_status['telegram'] else 'TOKEN YOK'}, WhatsApp={'AKTIF' if oc_status['whatsapp'] else '.env eksik'}, X={'AKTIF' if oc_status['x_twitter'] else '.env eksik'}")
+        oc_status = getattr(self.openclaw, 'status', {"telegram": False, "whatsapp": False, "x_twitter": False})
+        print(f"  OpenClaw: Telegram={'AKTIF' if oc_status.get('telegram') else 'TOKEN YOK'}, WhatsApp={'AKTIF' if oc_status.get('whatsapp') else '.env eksik'}, X={'AKTIF' if oc_status.get('x_twitter') else '.env eksik'}")
         # Telegram bot'u arka planda baslat
-        if self.openclaw.hazir_mi():
+        if self.openclaw.hazir_mi() and hasattr(self.openclaw, 'telegram_baslat'):
             self.openclaw.telegram_baslat()
         print(f"  Agent-Reach: {'OK repo var' if self.agentreach.hazir_mi() else 'PENDING repo klonlanacak'}")
 
