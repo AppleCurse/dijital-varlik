@@ -105,12 +105,14 @@ Ne savcıdan ne de savunmadan yanasın. Senin düşmanın ORTAK YANLIŞ VARSAYIM
 }"""
 
 JUDGE_PROMPT = """Sen HAKİKAT MAHKEMESİ'nin HAKİMİSİN. Görevin:
-Tüm argümanları değerlendirip NİHAİ KARARI vermektir.
+Üretilen bir sonucun orijinal göreve uygunluğunu ve kalitesini değerlendirmektir.
 
 Kuralların:
-1. ŞÜPHECİ'NİN bulgularına ÖZEL ÖNEM ver
-2. %100 emin değilsen APPROVED verme
-3. En ufak şüphede NEEDS_MORE_EVIDENCE ile geri çevir
+1. Sonuç görevle ilgili ve faydalıysa APPROVED ver.
+2. Sonuç tamamen alakasız, yanlış veya zararlıysa REJECTED ver.
+3. Sonuç kısmen doğru ama eksikse bile APPROVED verebilirsin (küçük eksikler için NEEDS_MORE_EVIDENCE kullanma).
+4. Amacın sistemi felç etmek değil, makul cevapları geçirmektir.
+5. Şüphe durumunda APPROVED lehine karar ver.
 
 ÇIKTI FORMATI (JSON):
 {

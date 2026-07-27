@@ -40,6 +40,7 @@ from enum import Enum
 ROOT = Path(__file__).resolve().parent if "__file__" in dir() else Path.home() / "dijital-varlik"
 sys.path.insert(0, str(ROOT))
 
+from mudahale.system_status import system_status_tool, format_status_for_user
 from config.config import config
 from karar.harness import get_harness
 from karar.mahkeme_engine import HakikatMahkemesi, LLMClient
@@ -295,6 +296,18 @@ def gorev_tipini_belirle(gorev: str) -> GorevTipi:
 # ================================================================
 # ANA DONGU
 # ================================================================
+
+
+# ── Sistem Durumu Intent ──
+SYSTEM_STATUS_KEYWORDS = [
+    "sistem durumu", "entegrasyon durumu", "durum raporu", "servis durumu",
+    "health", "status", "hangi servis", "hangi modül", "altyapı durumu",
+    "modüller çalışıyor", "servisler aktif", "sistem sağlığı"
+]
+
+def _is_system_status_query(text: str) -> bool:
+    t = text.lower()
+    return any(kw in t for kw in SYSTEM_STATUS_KEYWORDS)
 
 class AgentikDongu:
     """
@@ -719,6 +732,29 @@ class AgentikDongu:
         print(f"{'='*60}")
 
         tum_fazlar = {"gorev": gorev, "adim": self.adim_sayisi}
+
+        # ── HIZLI YOL: Sistem Durumu Intent ──
+        if _is_system_status_query(gorev):
+            print("[INTENT] Sistem durumu sorusu tespit edildi → system_status_tool")
+            try:
+                status = system_status_tool()
+                mesaj = format_status_for_user(status)
+                sonuc = {
+                    "status": "success",
+                    "message": mesaj,
+                    "rota": "system_status",
+                    "arac": "system_status_tool",
+                    "deneme": 0,
+                    "mahkeme": {"verdict": "APPROVED", "confidence": 1.0},
+                }
+                self.faz_kayit(gorev, sonuc, tum_fazlar)
+                sure = (datetime.now() - baslangic).total_seconds()
+                print(f"\n{'─'*60}")
+                print(f"TAMAMLANDI ({sure:.1f}s) - success (system_status)")
+                print(f"{'─'*60}")
+                return sonuc
+            except Exception as e:
+                print(f"[INTENT] system_status_tool hata: {e} → normal akışa düşülüyor")
 
         # ── FAZ 0: Bellek ──
         anilar = self.faz_bellek(gorev)
