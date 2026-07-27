@@ -305,7 +305,8 @@ class LLMClient:
         content = None
         tag = f"[LLM:{provider_name}]" if provider_name else "[LLM]"
         try:
-            resp = requests.post(url, headers=headers, json=payload, timeout=120)
+            import json as _json
+            resp = requests.post(url, headers=headers, data=_json.dumps(payload, ensure_ascii=False).encode('utf-8'), timeout=120)
             if resp.status_code != 200:
                 print(f"{tag} HTTP {resp.status_code} → siradaki...", file=sys.stderr)
                 return {"error": f"HTTP {resp.status_code}"}
@@ -457,26 +458,53 @@ EK BAĞLAM:
                                    full_prompt + self._format_context(self.log))
         self._add_turn("JUDGE", json.dumps(judge_raw, ensure_ascii=False, indent=2))
 
-        # DEBUG: Log response structure
+        # DEBUG
         print(f"[DEBUG] Judge response keys: {list(judge_raw.keys())}")
-        print(f"[DEBUG] Confidence value: {judge_raw.get('confidence', 'MISSING')}")
-        if 'raw_response' in judge_raw:
-            print(f"[DEBUG] Raw response: {judge_raw['raw_response'][:300]}")
 
-        # Parse
-        verdict_str = judge_raw.get("verdict", "NEEDS_MORE_EVIDENCE").upper()
+        # content alanından JSON çıkarmaya çalış
+        parsed = {}
+        raw_content = judge_raw.get("content", "") or ""
+        
+        # Önce content içinde JSON arıyoruz
+        import re, json as _json
+        json_match = re.search(r'\{[\s\S]*\}', raw_content)
+        if json_match:
+            try:
+                parsed = _json.loads(json_match.group(0))
+            except Exception:
+                parsed = {}
+        
+        # Hâlâ boşsa heuristic kullan
+        if not parsed:
+            parsed = _parse_verdict_heuristic(raw_content)
+        
+        # Eğer LLM zaten dict verdiyse onu da dene
+        if not parsed and isinstance(judge_raw, dict):
+            if "verdict" in judge_raw:
+                parsed = judge_raw
+
+        print(f"[DEBUG] Parsed keys: {list(parsed.keys())}")
+        print(f"[DEBUG] Confidence: {parsed.get('confidence', 'MISSING')}")
+
+        verdict_str = str(parsed.get("verdict", "NEEDS_MORE_EVIDENCE")).upper()
         try:
             verdict = Verdict(verdict_str)
         except ValueError:
             verdict = Verdict.NEEDS_MORE_EVIDENCE
 
+        conf = parsed.get("confidence", 0.0)
+        try:
+            conf = float(conf)
+        except Exception:
+            conf = 0.0
+
         result = MahkemeResult(
             verdict=verdict,
-            judge_reasoning=judge_raw.get("reasoning", ""),
+            judge_reasoning=parsed.get("reasoning", raw_content[:400]),
             debate_log=list(self.log),
-            approved_output=judge_raw.get("approved_output") if verdict == Verdict.APPROVED else None,
-            confidence=judge_raw.get("confidence", 0.0),
-            minority_report=judge_raw.get("dissent_note"),
+            approved_output=parsed.get("approved_output") if verdict == Verdict.APPROVED else None,
+            confidence=conf,
+            minority_report=parsed.get("dissent_note"),
         )
 
         print(f"VERDICT: {result.verdict.value} (Confidence: {result.confidence:.1%})")
