@@ -539,6 +539,18 @@ class AgentikDongu:
     # FAZ 3: ICRA (Harness korumali)
     # ================================================================
 
+    def _calistir_yerel_bellek(self, gorev: str) -> Dict:
+        """Sistem içi sorgular için Mem0 + Letta kullan."""
+        # Mem0'dan ilgili anıları çek
+        anilar = self.mem0.hatirla(gorev) if self.mem0 else []
+        
+        # Letta'dan bağlam al
+        letta_baglam = self.letta.get_context() if self.letta else ""
+        
+        # Birleştir ve yanıt üret
+        yanit = f"Sistem durumu: {len(anilar)} anı bulundu. Bağlam: {letta_baglam[:200]}..."
+        return {"status": "success", "message": yanit, "anilar": anilar}
+
     def faz_icra(self, gorev: str, rota: Dict) -> Dict:
         """Gorevi Harness korumasi altinda calistir. Hata → duzelt → tekrar dene."""
         print(f"\n[FAZ 3] ICRA - {rota['arac']}")
@@ -556,6 +568,9 @@ class AgentikDongu:
             icra_fn = lambda: self._icra_browser(gorev)
         elif rota["arac"] == "agent-s":
             icra_fn = lambda: self._icra_agent_s(gorev)
+        elif rota["arac"] == "yerel-bellek":
+            sonuc = self._calistir_yerel_bellek(gorev)
+            return sonuc
         elif rota["arac"] in ("smolagents", "smolagents-code"):
             icra_fn = lambda: self._icra_smol(gorev)
         elif rota["arac"] == "bettafish":

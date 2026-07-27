@@ -30,12 +30,12 @@ class SmolAgentBridge:
             from smolagents import CodeAgent, LiteLLMModel
 
             # 9Router uzerinden model (config.py'den al)
-            model_id = "aspasia"
-            api_base = config.LITELLM_URL.rstrip('/')
-            api_key = config.LITELLM_KEY
+            model_id = "deepseek-chat"
+            api_base = os.environ.get("DEEPSEEK_URL", "https://api.deepseek.com/v1").rstrip('/')
+            api_key = os.environ.get("DEEPSEEK_API_KEY", "")
 
             self.model = LiteLLMModel(
-                model_id="openai/aspasia",
+                model_id="deepseek-chat",
                 api_base=api_base,
                 api_key=api_key,
             )
