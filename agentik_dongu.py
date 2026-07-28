@@ -507,11 +507,44 @@ class AgentikDongu:
     # FAZ 2: ROTA
     # ================================================================
 
+    def _llm_tabanli_rota(self, gorev: str) -> GorevTipi:
+        """LLM kullanarak görevi sınıflandırır ve dinamik rota tayin eder."""
+        sistem_istemi = (
+            "Sen otonom bir yapay zeka yönlendiricisisin. "
+            "Kullanıcının görevini analiz et ve aşağıdaki kategorilerden en uygun olanını seç:\n"
+            "- web (web'de gezinme, site açma, indirme)\n"
+            "- masaustu (yerel dosya açma, uygulama kontrolü)\n"
+            "- analiz (veri analizi, özetleme, raporlama)\n"
+            "- kod (kod yazma, hesaplama, programlama)\n"
+            "- istihbarat (haber, sosyal medya tarama)\n"
+            "- soru (genel bilgi sorusu veya sohbet)\n\n"
+            "Sadece ve sadece JSON formatında yanıt ver: {\"tip\": \"KATEGORİ_ADI\"}"
+        )
+        try:
+            r = self.llm.call(sistem_istemi, gorev, max_tokens=100)
+            icerik = r.get("content", "")
+
+            # JSON'u ayıklama
+            import re
+            match = re.search(r'\{.*\}', icerik, re.DOTALL)
+            if match:
+                import json
+                data = json.loads(match.group(0))
+                tip_str = data.get("tip", "").lower()
+                for t in GorevTipi:
+                    if t.value == tip_str:
+                        return t
+        except Exception as e:
+            print(f"   [ROTA HATA] LLM routing başarisiz: {e}")
+
+        # Fallback to static if LLM fails
+        return gorev_tipini_belirle(gorev)
+
     def faz_rota(self, gorev: str) -> Dict:
         """Gorev tipini tespit et, uygun aracı sec."""
         print(f"\n[FAZ 2] ROTA TAYINI")
 
-        tip = gorev_tipini_belirle(gorev)
+        tip = self._llm_tabanli_rota(gorev)
         print(f"   Gorev tipi : {tip.value}")
 
         rota = {
