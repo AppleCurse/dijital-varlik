@@ -507,11 +507,35 @@ class AgentikDongu:
     # FAZ 2: ROTA
     # ================================================================
 
+    def _llm_tabanli_rota(self, gorev: str) -> GorevTipi:
+        """LLM kullanarak gorev tipini tespit et, basarisiz olursa anahtar kelimeye dus."""
+        system_prompt = (
+            "Gorevi analiz et ve sadece su tiplerden birini dondur (tek kelime): "
+            "web, masaustu, analiz, kod, soru, istihbarat.\n"
+            "Baska hicbir aciklama veya isaret kullanma."
+        )
+
+        try:
+            yanit = self.llm.call(system_prompt, gorev, temperature=0.0)
+            metin = yanit.get("content", "").strip().lower()
+
+            for tip in GorevTipi:
+                if tip.value == metin:
+                    return tip
+
+            for tip in GorevTipi:
+                if tip.value in metin:
+                    return tip
+        except Exception as e:
+            print(f"   [Rota] LLM hatasi, varsayilana donuluyor: {e}")
+
+        return gorev_tipini_belirle(gorev)
+
     def faz_rota(self, gorev: str) -> Dict:
         """Gorev tipini tespit et, uygun aracı sec."""
         print(f"\n[FAZ 2] ROTA TAYINI")
 
-        tip = gorev_tipini_belirle(gorev)
+        tip = self._llm_tabanli_rota(gorev)
         print(f"   Gorev tipi : {tip.value}")
 
         rota = {
