@@ -79,11 +79,11 @@ class AIBridge:
         try:
             r = requests.post("https://api.deepseek.com/v1/chat/completions",
                 headers={"Authorization": f"Bearer {DEEPSEEK_KEY}", "Content-Type": "application/json"},
-                json={"model": "deepseek-chat", "messages": messages,
+                json={"model": "deepseek-v4-flash", "messages": messages,
                       "max_tokens": max_tokens, "stream": False}, timeout=30)
             d = r.json()
             return {"status": "ok", "content": d["choices"][0]["message"]["content"],
-                    "model": d.get("model", "deepseek-chat")}
+                    "model": d.get("model", "deepseek-v4-flash")}
         except Exception as e:
             return {"status": "error", "message": str(e)[:200]}
 

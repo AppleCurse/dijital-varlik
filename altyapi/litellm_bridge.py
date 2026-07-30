@@ -27,14 +27,14 @@ PROVIDERS = [
     {
         "name": "omniroute",
         "url":   os.getenv("OMNIROUTE_URL", "http://localhost:3000/v1"),
-        "key":   os.getenv("OMNIROUTE_API_KEY", "sk-d284d18e441e2a43-484250-242a270f"),
+        "key":   os.getenv("OMNIROUTE_API_KEY", os.getenv("OMNIROUTE_API_KEY")),
         "model": os.getenv("OMNIROUTE_MODEL", "auto"),
     },
     {
         "name": "deepseek",
         "url":   os.getenv("DEEPSEEK_URL", "https://api.deepseek.com/v1"),
         "key":   os.getenv("DEEPSEEK_API_KEY", ""),
-        "model": os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+        "model": os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash"),
     },
     {
         "name": "groq",

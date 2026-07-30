@@ -54,6 +54,7 @@ from mudahale.pipecat_bridge import get_pipecat
 from mudahale.f5tts_bridge import get_f5tts
 from mudahale.qwen_bridge import get_qwen
 from mudahale.voicebox_bridge import Voicebox, voicebox_konus, voicebox_dinle, voicebox_yaziya_dok
+from mudahale.agent_reach_bridge import get_agent_reach
 from mudahale.openclaw_bridge import OpenClawBridge, get_openclaw
 import socket
 import subprocess
@@ -197,60 +198,9 @@ def _get_tts():
 # OPENCLAW KOPRUSU (Mesajlasma — WhatsApp/Telegram)
 # ================================================================
 
-class OpenClawBridge:
-    """7/24 mesajlasma istihbarati. WhatsApp/Telegram okur, yanitlar."""
-
-    def __init__(self):
-        self._aktif = False
-        self._claw_yolu = Path.home() / "dijital-varlik" / "openclaw-main"
-
-    def hazir_mi(self) -> bool:
-        return self._claw_yolu.exists()
-
-    def dinle_baslat(self):
-        """Arka planda mesaj dinlemeyi baslat — simdilik stub."""
-        if not self.hazir_mi():
-            return {"status": "error", "message": "OpenClaw repo yok"}
-        self._aktif = True
-        return {"status": "success", "message": "OpenClaw dinleme basladi (stub)"}
-
-    def gelen_mesaj_var_mi(self) -> Optional[dict]:
-        """Yeni mesaj var mi kontrol et — stub."""
-        return None
-
-    def yanit_gonder(self, metin: str, platform: str = "whatsapp") -> dict:
-        """Platform uzerinden yanit gonder — stub."""
-        return {"status": "success", "message": f"[{platform}] stub: {metin[:50]}"}
 
 
-# ================================================================
-# AGENT-REACH KOPRUSU (Sosyal Medya Istihbarati)
-# ================================================================
 
-class AgentReachBridge:
-    """Derin sosyal medya istihbarati. BettaFish'ten farkli kaynaklar."""
-
-    def __init__(self):
-        self._reach_yolu = Path.home() / "dijital-varlik" / "agent-reach-main"
-
-    def hazir_mi(self) -> bool:
-        return self._reach_yolu.exists()
-
-    def tara(self, konu: str, kaynaklar: list = None) -> dict:
-        """Sosyal medyada derin tarama — stub."""
-        if not self.hazir_mi():
-            return {"status": "error", "message": "Agent-Reach repo yok"}
-        return {
-            "status": "success",
-            "konu": konu,
-            "sonuc": f"Agent-Reach stub: '{konu}' taramasi baslatildi",
-            "kaynaklar": kaynaklar or ["reddit", "twitter", "tiktok"],
-        }
-
-
-# ================================================================
-# GOREV TIPI TESPITI
-# ================================================================
 
 class GorevTipi(Enum):
     WEB = "web"
@@ -424,12 +374,11 @@ class AgentikDongu:
         # Mesajlasma
         print("\n> MESAJLASMA")
         self.openclaw = OpenClawBridge()
-        self.agentreach = AgentReachBridge()
+        self.agentreach = get_agent_reach()  # AgentReachBridge geçici olarak devre dışı
         self.openclaw = get_openclaw()
-        self.agentreach = None
-        print(f"  OpenClaw: {"TOKEN HAZIR" if self.openclaw.hazir_mi() else "TOKEN YOK"}")
-        print(f"  Agent-Reach: WARN bridge henuz yok")
-
+        self.agentreach = get_agent_reach()
+        print(f"  OpenClaw: {'TOKEN HAZIR' if self.openclaw and self.openclaw.hazir_mi() else 'TOKEN YOK'}")
+        print(f"  Agent-Reach: {'OK' if self.agentreach and self.agentreach.hazir_mi() else 'FAIL'}")
         # Görü
         print("\n> GORU")
         q_ok = self.qwen and self.qwen.hazir_mi()
@@ -521,6 +470,14 @@ class AgentikDongu:
             "hazir": False,
         }
 
+        # URL_HIZLI_YOL_AGENT_REACH
+        import re as _re_ar
+        _m = _re_ar.search(r"https?://[^\s<>\]\)]+", gorev or "")
+        _gl = (gorev or "").lower()
+        if _m and any(k in _gl for k in ("oku", "özet", "ozet", "read", "sayfa", "içerik", "icerik", "özetle", "ozetle")):
+            if getattr(self, "agentreach", None) and self.agentreach.hazir_mi():
+                return {"tip": "istihbarat", "arac": "agent-reach", "hazir": True, "uyari": None}
+
         if tip == GorevTipi.WEB:
             rota["arac"] = "browser-use"
             rota["hazir"] = self.browser_use.hazir_mi()
@@ -530,8 +487,11 @@ class AgentikDongu:
             if not rota["hazir"]:
                 rota["uyari"] = "Agent S sunucusu calismiyor. Windows'ta: powershell -File agent_s_server.ps1"
         elif tip == GorevTipi.ISTIHBARAT:
-            rota["arac"] = "bettafish"
-            rota["hazir"] = self.bettafish is not None and self.bettafish.hazir_mi()
+            rota["arac"] = "agent-reach"
+            rota["hazir"] = bool(getattr(self, "agentreach", None) and self.agentreach.hazir_mi())
+            if not rota["hazir"] and self.bettafish is not None and self.bettafish.hazir_mi():
+                rota["arac"] = "bettafish"
+                rota["hazir"] = True
         elif tip in (GorevTipi.ANALIZ, GorevTipi.SORU):
             rota["arac"] = "smolagents"
             rota["hazir"] = self.smol.hazir_mi()
@@ -586,6 +546,8 @@ class AgentikDongu:
             return sonuc
         elif rota["arac"] in ("smolagents", "smolagents-code"):
             icra_fn = lambda: self._icra_smol(gorev)
+        elif rota["arac"] == "agent-reach":
+            icra_fn = lambda: self._icra_agent_reach(gorev)
         elif rota["arac"] == "bettafish":
             icra_fn = lambda: self._icra_bettafish(gorev)
         elif rota["arac"] == "atom":
@@ -633,6 +595,13 @@ class AgentikDongu:
         if isinstance(sonuc, str):
             return {"status": "success", "message": sonuc[:500]}
         return {"status": "success", "message": str(sonuc)[:500]}
+
+    
+    def _icra_agent_reach(self, gorev: str) -> Dict:
+        """Agent Reach ile istihbarat / web okuma."""
+        if not getattr(self, "agentreach", None) or not self.agentreach.hazir_mi():
+            return {"status": "error", "message": "Agent Reach hazir degil"}
+        return self.agentreach.calistir(gorev)
 
     def _icra_bettafish(self, gorev: str) -> Dict:
         """BettaFish ile istihbarat gorevi."""

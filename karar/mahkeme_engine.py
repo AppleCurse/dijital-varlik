@@ -214,7 +214,7 @@ class LLMClient:
                 "name": "deepseek",
                 "url": _os.getenv("DEEPSEEK_URL", "https://api.deepseek.com/v1"),
                 "key": _os.getenv("DEEPSEEK_API_KEY", ""),
-                "model": _os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+                "model": _os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash"),
             },
             {
                 "name": "groq",

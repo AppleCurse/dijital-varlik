@@ -28,13 +28,13 @@ def _windows_ip() -> str:
 class Config:
     # 9Router — WSL2'de Windows host IP'si (localhost çalışmaz)
     _ROUTER_HOST = os.getenv("ROUTER_HOST", _windows_ip())
-    LITELLM_URL = os.getenv("LITELLM_URL", f"http://{_ROUTER_HOST}:20128/v1")
-    LITELLM_KEY = os.getenv("LITELLM_KEY", "sk-58bbadde44171bff-6jq5bl-7378c3af")
+    LITELLM_URL = os.getenv("LITELLM_URL", os.getenv("DEEPSEEK_URL", "https://api.deepseek.com/v1"))
+    LITELLM_KEY = os.getenv("LITELLM_KEY") or os.getenv("DEEPSEEK_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("DEEPSEEK_API_KEY") or os.getenv("OPENAI_API_KEY")
 
-    MAHKEME_MODEL = os.getenv("MAHKEME_MODEL", "aspasia")
-    FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "aspasia")
+    MAHKEME_MODEL = os.getenv("MAHKEME_MODEL", "deepseek-v4-flash")
+    FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "deepseek-v4-flash")
     KOD_MODEL = os.getenv("KOD_MODEL", "dijitalvarlik")
-    WEB_MODEL = os.getenv("WEB_MODEL", "aspasia")
+    WEB_MODEL = os.getenv("WEB_MODEL", "deepseek-v4-flash")
 
     # Servisler
     BROWSERLESS_URL = os.getenv("BROWSERLESS_URL", "http://localhost:3004")
