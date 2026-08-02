@@ -1,4 +1,3 @@
-
-## 2024-07-18 - String Checking Bottlenecks
-**Learning:** Checking for multiple substrings in a python string using `any(k in string.lower() for k in keywords)` is significantly slower than using a pre-compiled `re.compile(r'word1|word2|word3', re.IGNORECASE).search(string)`, especially on critical data paths like text classification routing (`siniflandir` in `otonom.py`). Avoiding the `.lower()` string allocation per execution also speeds up the operation.
-**Action:** Use `re.compile` with `re.IGNORECASE` for matching multiple keywords instead of list comprehensions with `in`.
+## 2023-10-27 - Dynamic LLM Routing and CentralRuntime Integration
+**Learning:** Migrating from static keyword routing to an LLM-based autonomous router provides greater flexibility for task categorization, while integrating the `CentralRuntime` event bus standardizes the task lifecycle events (`TASK_STARTED`, `TASK_COMPLETED`, etc.) across the organism.
+**Action:** When making architectural changes to critical event loops, ensure fallback mechanisms are in place (e.g., catching LLM API failures and falling back to static logic) to maintain system resilience. Document all required packages when tests fail due to missing dependencies.
