@@ -211,30 +211,37 @@ class GorevTipi(Enum):
     ISTIHBARAT = "istihbarat"
 
 
+_WEB_KEYWORDS = ["site", "web", "tarayici", "browser", "http", "tikla",
+                "sayfa", "form", "indir", "download", "url", "link",
+                "ekran goruntusu", "screenshot", "gez", "dolas"]
+_MASAUSTU_KEYWORDS = ["excel", "word", "dosya", "klasor", "fare", "klavye",
+                     "masaustu", "pencere", "kaydet", "notepad",
+                     "hesap makinesi", "cmd", "powershell", "agent s"]
+_ANALIZ_KEYWORDS = ["analiz", "rapor", "ozetle", "karsilastir", "istatistik",
+                   "grafik", "tablo", "veri", "arastir", "incele"]
+_ISTIHBARAT_KEYWORDS = ["gundem", "haber", "sosyal medya", "tara", "twitter",
+                       "reddit", "tiktok", "instagram", "trend", "viral",
+                       "sentiment", "duygu analizi", "public opinion"]
+_KOD_KEYWORDS = ["kod", "python", "script", "hesapla", "fonksiyon",
+                "program", "debug", "fix", "duzelt"]
+
+_WEB_PATTERN = re.compile("|".join(re.escape(k) for k in _WEB_KEYWORDS), re.IGNORECASE)
+_MASAUSTU_PATTERN = re.compile("|".join(re.escape(k) for k in _MASAUSTU_KEYWORDS), re.IGNORECASE)
+_ANALIZ_PATTERN = re.compile("|".join(re.escape(k) for k in _ANALIZ_KEYWORDS), re.IGNORECASE)
+_ISTIHBARAT_PATTERN = re.compile("|".join(re.escape(k) for k in _ISTIHBARAT_KEYWORDS), re.IGNORECASE)
+_KOD_PATTERN = re.compile("|".join(re.escape(k) for k in _KOD_KEYWORDS), re.IGNORECASE)
+
 def gorev_tipini_belirle(gorev: str) -> GorevTipi:
     """LLM kullanmadan, anahtar kelime ile hizli tip tespiti."""
-    g = gorev.lower()
-
-    web_keywords = ["site", "web", "tarayici", "browser", "http", "tikla",
-                    "sayfa", "form", "indir", "download", "url", "link",
-                    "ekran goruntusu", "screenshot", "gez", "dolas"]
-    masaustu_keywords = ["excel", "word", "dosya", "klasor", "fare", "klavye",
-                         "masaustu", "pencere", "kaydet", "notepad",
-                         "hesap makinesi", "cmd", "powershell", "agent s"]
-    analiz_keywords = ["analiz", "rapor", "ozetle", "karsilastir", "istatistik",
-                       "grafik", "tablo", "veri", "arastir", "incele"]
-    istihbarat_keywords = ["gundem", "haber", "sosyal medya", "tara", "twitter",
-                           "reddit", "tiktok", "instagram", "trend", "viral",
-                           "sentiment", "duygu analizi", "public opinion"]
-    kod_keywords = ["kod", "python", "script", "hesapla", "fonksiyon",
-                    "program", "debug", "fix", "duzelt"]
+    if not gorev:
+        return GorevTipi.SORU
 
     scores = {
-        GorevTipi.WEB: sum(1 for kw in web_keywords if kw in g),
-        GorevTipi.MASAUSTU: sum(1 for kw in masaustu_keywords if kw in g),
-        GorevTipi.ANALIZ: sum(1 for kw in analiz_keywords if kw in g),
-        GorevTipi.KOD: sum(1 for kw in kod_keywords if kw in g),
-        GorevTipi.ISTIHBARAT: sum(1 for kw in istihbarat_keywords if kw in g),
+        GorevTipi.WEB: len(_WEB_PATTERN.findall(gorev)),
+        GorevTipi.MASAUSTU: len(_MASAUSTU_PATTERN.findall(gorev)),
+        GorevTipi.ANALIZ: len(_ANALIZ_PATTERN.findall(gorev)),
+        GorevTipi.KOD: len(_KOD_PATTERN.findall(gorev)),
+        GorevTipi.ISTIHBARAT: len(_ISTIHBARAT_PATTERN.findall(gorev)),
     }
 
     best = max(scores, key=scores.get)
@@ -456,11 +463,41 @@ class AgentikDongu:
     # FAZ 2: ROTA
     # ================================================================
 
+    def _llm_tabanli_rota(self, gorev: str) -> GorevTipi:
+        """Gorev tipini LLM ile tespit et (fallback: statik tespit)."""
+        prompt = f"""Asagidaki gorev metni icin en uygun gorev tipini belirle.
+Sadece su seceneklerden birini tek kelime olarak dondur: web, masaustu, analiz, kod, soru, istihbarat
+
+Gorev: {gorev}
+
+Tip:"""
+        try:
+            yanit = self.llm.call(
+                system_prompt="Sen bir gorev yonlendiricisin. Gorevin siniflandirmasini sadece tek kelime ile yap.",
+                user_message=prompt,
+                max_tokens=10,
+                temperature=0.0
+            )
+
+            if yanit and "content" in yanit:
+                tip_str = yanit["content"].strip().lower()
+
+                # Bazi fazlaliklari temizle
+                for chars in ["'", '"', ".", ","]:
+                    tip_str = tip_str.replace(chars, "")
+
+                if tip_str in [t.value for t in GorevTipi]:
+                    return GorevTipi(tip_str)
+        except Exception as e:
+            print(f"[ROTA] LLM yonlendirmesi basarisiz: {e}, statik fallback kullaniliyor.")
+
+        return gorev_tipini_belirle(gorev)
+
     def faz_rota(self, gorev: str) -> Dict:
         """Gorev tipini tespit et, uygun aracı sec."""
         print(f"\n[FAZ 2] ROTA TAYINI")
 
-        tip = gorev_tipini_belirle(gorev)
+        tip = self._llm_tabanli_rota(gorev)
         print(f"   Gorev tipi : {tip.value}")
 
         rota = {

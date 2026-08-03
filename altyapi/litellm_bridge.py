@@ -71,7 +71,7 @@ class LiteLLMBridge:
             try:
                 resp = requests.get(
                     f"{p['url'].rstrip('/')}/models",
-                    headers={"Authorization": f"Bearer {p['key']}"},
+                    headers={"Authorization": f"Bearer {str(p.get('key', '')).strip()}"},
                     timeout=5
                 )
                 if resp.status_code == 200:
@@ -87,7 +87,7 @@ class LiteLLMBridge:
             try:
                 resp = requests.get(
                     f"{p['url'].rstrip('/')}/models",
-                    headers={"Authorization": f"Bearer {p['key']}"},
+                    headers={"Authorization": f"Bearer {str(p.get('key', '')).strip()}"},
                     timeout=10
                 )
                 data = resp.json().get("data", [])
@@ -118,7 +118,7 @@ class LiteLLMBridge:
 
             url = f"{provider['url'].rstrip('/')}/chat/completions"
             headers = {
-                "Authorization": f"Bearer {provider['key']}",
+                "Authorization": f"Bearer {str(provider.get('key', '')).strip()}",
                 "Content-Type": "application/json"
             }
             payload = {
