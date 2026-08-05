@@ -211,30 +211,21 @@ class GorevTipi(Enum):
     ISTIHBARAT = "istihbarat"
 
 
+_WEB_PATTERN = re.compile(r'site|web|tarayici|browser|http|tikla|sayfa|form|indir|download|url|link|ekran goruntusu|screenshot|gez|dolas', re.IGNORECASE)
+_MASAUSTU_PATTERN = re.compile(r'excel|word|dosya|klasor|fare|klavye|masaustu|pencere|kaydet|notepad|hesap makinesi|cmd|powershell|agent s', re.IGNORECASE)
+_ANALIZ_PATTERN = re.compile(r'analiz|rapor|ozetle|karsilastir|istatistik|grafik|tablo|veri|arastir|incele', re.IGNORECASE)
+_ISTIHBARAT_PATTERN = re.compile(r'gundem|haber|sosyal medya|tara|twitter|reddit|tiktok|instagram|trend|viral|sentiment|duygu analizi|public opinion', re.IGNORECASE)
+_KOD_PATTERN = re.compile(r'kod|python|script|hesapla|fonksiyon|program|debug|fix|duzelt', re.IGNORECASE)
+
 def gorev_tipini_belirle(gorev: str) -> GorevTipi:
     """LLM kullanmadan, anahtar kelime ile hizli tip tespiti."""
-    g = gorev.lower()
-
-    web_keywords = ["site", "web", "tarayici", "browser", "http", "tikla",
-                    "sayfa", "form", "indir", "download", "url", "link",
-                    "ekran goruntusu", "screenshot", "gez", "dolas"]
-    masaustu_keywords = ["excel", "word", "dosya", "klasor", "fare", "klavye",
-                         "masaustu", "pencere", "kaydet", "notepad",
-                         "hesap makinesi", "cmd", "powershell", "agent s"]
-    analiz_keywords = ["analiz", "rapor", "ozetle", "karsilastir", "istatistik",
-                       "grafik", "tablo", "veri", "arastir", "incele"]
-    istihbarat_keywords = ["gundem", "haber", "sosyal medya", "tara", "twitter",
-                           "reddit", "tiktok", "instagram", "trend", "viral",
-                           "sentiment", "duygu analizi", "public opinion"]
-    kod_keywords = ["kod", "python", "script", "hesapla", "fonksiyon",
-                    "program", "debug", "fix", "duzelt"]
 
     scores = {
-        GorevTipi.WEB: sum(1 for kw in web_keywords if kw in g),
-        GorevTipi.MASAUSTU: sum(1 for kw in masaustu_keywords if kw in g),
-        GorevTipi.ANALIZ: sum(1 for kw in analiz_keywords if kw in g),
-        GorevTipi.KOD: sum(1 for kw in kod_keywords if kw in g),
-        GorevTipi.ISTIHBARAT: sum(1 for kw in istihbarat_keywords if kw in g),
+        GorevTipi.WEB: len(_WEB_PATTERN.findall(gorev)),
+        GorevTipi.MASAUSTU: len(_MASAUSTU_PATTERN.findall(gorev)),
+        GorevTipi.ANALIZ: len(_ANALIZ_PATTERN.findall(gorev)),
+        GorevTipi.KOD: len(_KOD_PATTERN.findall(gorev)),
+        GorevTipi.ISTIHBARAT: len(_ISTIHBARAT_PATTERN.findall(gorev)),
     }
 
     best = max(scores, key=scores.get)
@@ -456,12 +447,45 @@ class AgentikDongu:
     # FAZ 2: ROTA
     # ================================================================
 
+    def _llm_tabanli_rota(self, gorev: str) -> Optional[GorevTipi]:
+        """Gorev tipini LLM ile tespit et (CentralRuntime hedefi)."""
+        prompt = f"""Asagidaki gorev icin en uygun kategoriyi sec.
+Sadece kategorinin adini yaz (baska hicbir sey yazma).
+
+Kategoriler:
+- web (tarayici islemleri, web scraping)
+- masaustu (yerel dosya, uygulama, klavye/fare)
+- analiz (veri inceleme, soru-cevap, genel bilgi)
+- kod (programlama, debug)
+- istihbarat (haber, sosyal medya)
+- soru (basit sorular, selamlasma)
+
+Gorev: {gorev}
+"""
+        try:
+            yanit = self.llm.call("Sen bir yonlendiricisin.", prompt, max_tokens=10)
+            if not yanit or "content" not in yanit:
+                return None
+            icerik = yanit["content"].lower().strip()
+
+            # Gelen yaniti Enum'a esle
+            for t in GorevTipi:
+                if t.value in icerik:
+                    return t
+        except Exception as e:
+            print(f"   [LLM ROTA] Hata: {e}")
+        return None
+
     def faz_rota(self, gorev: str) -> Dict:
         """Gorev tipini tespit et, uygun aracı sec."""
         print(f"\n[FAZ 2] ROTA TAYINI")
 
-        tip = gorev_tipini_belirle(gorev)
-        print(f"   Gorev tipi : {tip.value}")
+        tip = self._llm_tabanli_rota(gorev)
+        if tip:
+            print(f"   [LLM] Gorev tipi : {tip.value}")
+        else:
+            tip = gorev_tipini_belirle(gorev)
+            print(f"   [FALLBACK] Gorev tipi : {tip.value}")
 
         rota = {
             "tip": tip.value,
