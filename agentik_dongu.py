@@ -456,11 +456,40 @@ class AgentikDongu:
     # FAZ 2: ROTA
     # ================================================================
 
+
+    def _llm_tabanli_rota(self, gorev: str) -> GorevTipi:
+        """LLM tabanli, dinamik gorev tipi belirleme."""
+        try:
+            system_prompt = """Sen bir gorev yonlendiricisisin.
+Kullanicinin istegini asagidaki kategorilerden birine siniflandir:
+- web: Tarayici, site gezme, url okuma islemleri
+- masaustu: Uygulama acma, dosya yonetimi, yerel pc islemleri
+- analiz: Veri ozetleme, raporlama, karsilastirma
+- kod: Yazilim, programlama, debug, hesaplama
+- istihbarat: Sosyal medya tarama, gundem analizi
+- soru: Sadece bilgi iceren genel sorular, digerlerine girmeyenler.
+
+SADECE kategorinin adini yaz. Baska hicbir kelime kullanma.
+"""
+            sonuc = self.llm.call(system_prompt, gorev, temperature=0.0)
+            if "error" not in sonuc and "content" in sonuc:
+                cevap = sonuc["content"].strip().lower()
+
+                for t in GorevTipi:
+                    if t.value == cevap:
+                        print(f"   [LLM Rota] Basarili: {t.value}")
+                        return t
+            print(f"   [LLM Rota] Gecersiz yanit, fallback kullaniliyor.")
+        except Exception as e:
+            print(f"   [LLM Rota] Hata: {e}, fallback kullaniliyor.")
+
+        return gorev_tipini_belirle(gorev)
+
     def faz_rota(self, gorev: str) -> Dict:
         """Gorev tipini tespit et, uygun aracı sec."""
         print(f"\n[FAZ 2] ROTA TAYINI")
 
-        tip = gorev_tipini_belirle(gorev)
+        tip = self._llm_tabanli_rota(gorev)
         print(f"   Gorev tipi : {tip.value}")
 
         rota = {
