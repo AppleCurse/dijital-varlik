@@ -456,11 +456,49 @@ class AgentikDongu:
     # FAZ 2: ROTA
     # ================================================================
 
+    def _llm_tabanli_rota(self, gorev: str) -> GorevTipi:
+        """LLM kullanarak gorev tipini belirle."""
+        system_prompt = """Sen sistem için bir görev yönlendiricisin.
+Aşağıdaki görev tiplerinden EN UYGUN OLANINI seç ve SADECE onun adını yaz.
+Asla başka bir kelime, açıklama veya noktalama işareti ekleme.
+
+Mevcut Görev Tipleri:
+- web: Tarayıcı kullanarak web sitelerinde gezinme, tıklama, indirme işlemleri.
+- masaustu: Bilgisayarda yerel uygulamaları kullanma, dosya/klasör işlemleri, cmd/powershell.
+- analiz: Veri inceleme, rapor çıkarma, özetleme.
+- kod: Kod yazma, hata ayıklama, fonksiyon çalıştırma.
+- istihbarat: Haber, sosyal medya, gündem tarama.
+- soru: Sadece bilgi edinme, basit sorular sorma."""
+        try:
+            response = self.llm.call(system_prompt, gorev, temperature=0.0)
+            content = response.get("content", "").strip().lower()
+
+            # Remove any trailing periods or formatting if the LLM made a mistake
+            content = ''.join(c for c in content if c.isalpha())
+
+            if content == "web":
+                return GorevTipi.WEB
+            elif content == "masaustu":
+                return GorevTipi.MASAUSTU
+            elif content == "analiz":
+                return GorevTipi.ANALIZ
+            elif content == "kod":
+                return GorevTipi.KOD
+            elif content == "istihbarat":
+                return GorevTipi.ISTIHBARAT
+            elif content == "soru":
+                return GorevTipi.SORU
+            else:
+                return gorev_tipini_belirle(gorev) # Fallback
+        except Exception as e:
+            print(f"   [LLM Rota] Hata: {e} -> Fallback kullaniliyor")
+            return gorev_tipini_belirle(gorev)
+
     def faz_rota(self, gorev: str) -> Dict:
         """Gorev tipini tespit et, uygun aracı sec."""
         print(f"\n[FAZ 2] ROTA TAYINI")
 
-        tip = gorev_tipini_belirle(gorev)
+        tip = self._llm_tabanli_rota(gorev)
         print(f"   Gorev tipi : {tip.value}")
 
         rota = {
