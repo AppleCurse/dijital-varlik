@@ -44,6 +44,9 @@ from mudahale.system_status import system_status_tool, format_status_for_user
 from config.config import config
 from karar.harness import get_harness
 from karar.mahkeme_engine import HakikatMahkemesi, LLMClient
+from runtime.kernel import kernel
+from runtime.event_bus import bus, Event
+from runtime.events import EventType
 from altyapi.mem0_bridge import get_mem0
 from altyapi.letta_bridge import get_letta
 from altyapi.litellm_bridge import litellm
@@ -388,6 +391,7 @@ class AgentikDongu:
 
     def _baslat(self):
         """Oturumu baslat, ilk kaydi at."""
+        kernel.start()
         self.letta.oturum_baslat(self.session_id, {"tip": "agentik_dongu"})
         self.mem0.olay_kaydet("Agentik Dongu baslatildi", "dongu", "critical")
         print(f"\n{'='*44}")
@@ -456,11 +460,33 @@ class AgentikDongu:
     # FAZ 2: ROTA
     # ================================================================
 
+    def _llm_tabanli_rota(self, gorev: str) -> GorevTipi:
+        """LLM kullanarak gorev tipini dinamik belirle."""
+        if not self.litellm:
+            return gorev_tipini_belirle(gorev)
+
+        prompt = (
+            f"Görev: '{gorev}'\n"
+            "Bu görevi analiz et ve sadece şu tiplerden birini seç: "
+            "web, masaustu, analiz, kod, soru, istihbarat. Sadece tipi yaz."
+        )
+        try:
+            yanit = self.litellm.chat([{"role": "user", "content": prompt}], max_tokens=20, temperature=0.1)
+            if yanit and "content" in yanit:
+                icerik = yanit["content"].strip().lower()
+                for tip_enum in GorevTipi:
+                    if tip_enum.value in icerik:
+                        return tip_enum
+        except Exception as e:
+            print(f"   WARN LLM rota basarisiz ({e}), fallback kullaniliyor.")
+
+        return gorev_tipini_belirle(gorev)
+
     def faz_rota(self, gorev: str) -> Dict:
         """Gorev tipini tespit et, uygun aracı sec."""
         print(f"\n[FAZ 2] ROTA TAYINI")
 
-        tip = gorev_tipini_belirle(gorev)
+        tip = self._llm_tabanli_rota(gorev)
         print(f"   Gorev tipi : {tip.value}")
 
         rota = {
@@ -693,6 +719,7 @@ class AgentikDongu:
         Tam agentik dongu — tum 6 faz.
         Bu metod organizmanin "kalp atisi"dir.
         """
+        bus.publish(Event(EventType.TASK_STARTED, {"gorev": gorev}))
         self.adim_sayisi += 1
         baslangic = datetime.now()
 
@@ -721,6 +748,7 @@ class AgentikDongu:
                 print(f"\n{'─'*60}")
                 print(f"TAMAMLANDI ({sure:.1f}s) - success (system_status)")
                 print(f"{'─'*60}")
+                bus.publish(Event(EventType.TASK_COMPLETED, {"gorev": gorev, "status": "success"}))
                 return sonuc
             except Exception as e:
                 print(f"[INTENT] system_status_tool hata: {e} → normal akışa düşülüyor")
@@ -741,6 +769,7 @@ class AgentikDongu:
                 "mahkeme": mahkeme,
             }
             self.faz_kayit(gorev, sonuc, tum_fazlar)
+            bus.publish(Event(EventType.TASK_REJECTED, {"gorev": gorev, "reason": sonuc["message"]}))
             return sonuc
 
         # ── FAZ 2: Rota ──
@@ -801,6 +830,11 @@ class AgentikDongu:
         print(f"\n{'-'*60}")
         print(f"TAMAMLANDI ({sure:.1f}s) - {sonuc['status']}")
         print(f"{'-'*60}")
+
+        if sonuc.get("status") == "success":
+            bus.publish(Event(EventType.TASK_COMPLETED, {"gorev": gorev, "status": "success"}))
+        else:
+            bus.publish(Event(EventType.TASK_FAILED, {"gorev": gorev, "status": sonuc.get("status")}))
 
         return sonuc
 
@@ -902,6 +936,7 @@ class AgentikDongu:
             f"Agentik Dongu kapatildi. {self.adim_sayisi} adim, {self.iyilesen_hata} iyilesen hata.",
             "dongu", "normal"
         )
+        kernel.stop()
         print("Agentik Dongu kapandi.")
 
 
