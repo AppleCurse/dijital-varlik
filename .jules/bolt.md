@@ -1,4 +1,3 @@
-
-## 2024-07-18 - String Checking Bottlenecks
-**Learning:** Checking for multiple substrings in a python string using `any(k in string.lower() for k in keywords)` is significantly slower than using a pre-compiled `re.compile(r'word1|word2|word3', re.IGNORECASE).search(string)`, especially on critical data paths like text classification routing (`siniflandir` in `otonom.py`). Avoiding the `.lower()` string allocation per execution also speeds up the operation.
-**Action:** Use `re.compile` with `re.IGNORECASE` for matching multiple keywords instead of list comprehensions with `in`.
+## 2026-07-19 - [Optimize gorev_tipini_belirle String Matching]
+**Learning:** Compiling complex regexes and using `.findall()` for multiple substring searches is significantly slower (~45us) than iterating through simple tuples doing C-level `in` checks on strings (~11us). However, placing the list structures inside the function creates object allocation overhead on each function call. Moving these to global scope as immutable `tuple`s avoids the recreation overhead while retaining fast `in` checks.
+**Action:** Default to Python's C-level substring `in` checks with globally scoped tuples instead of regex for simple keyword extraction, especially in high-throughput hot paths.
