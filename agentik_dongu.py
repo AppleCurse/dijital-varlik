@@ -211,30 +211,23 @@ class GorevTipi(Enum):
     ISTIHBARAT = "istihbarat"
 
 
-def gorev_tipini_belirle(gorev: str) -> GorevTipi:
-    """LLM kullanmadan, anahtar kelime ile hizli tip tespiti."""
-    g = gorev.lower()
+# Pre-compile regex patterns for performance optimization
+_WEB_PATTERN = re.compile(r'\b(site|web|tarayici|browser|http|tikla|sayfa|form|indir|download|url|link|ekran goruntusu|screenshot|gez|dolas)\b', re.IGNORECASE)
+_MASAUSTU_PATTERN = re.compile(r'\b(excel|word|dosya|klasor|fare|klavye|masaustu|pencere|kaydet|notepad|hesap makinesi|cmd|powershell|agent s)\b', re.IGNORECASE)
+_ANALIZ_PATTERN = re.compile(r'\b(analiz|rapor|ozetle|karsilastir|istatistik|grafik|tablo|veri|arastir|incele)\b', re.IGNORECASE)
+_ISTIHBARAT_PATTERN = re.compile(r'\b(gundem|haber|sosyal medya|tara|twitter|reddit|tiktok|instagram|trend|viral|sentiment|duygu analizi|public opinion)\b', re.IGNORECASE)
+_KOD_PATTERN = re.compile(r'\b(kod|python|script|hesapla|fonksiyon|program|debug|fix|duzelt)\b', re.IGNORECASE)
 
-    web_keywords = ["site", "web", "tarayici", "browser", "http", "tikla",
-                    "sayfa", "form", "indir", "download", "url", "link",
-                    "ekran goruntusu", "screenshot", "gez", "dolas"]
-    masaustu_keywords = ["excel", "word", "dosya", "klasor", "fare", "klavye",
-                         "masaustu", "pencere", "kaydet", "notepad",
-                         "hesap makinesi", "cmd", "powershell", "agent s"]
-    analiz_keywords = ["analiz", "rapor", "ozetle", "karsilastir", "istatistik",
-                       "grafik", "tablo", "veri", "arastir", "incele"]
-    istihbarat_keywords = ["gundem", "haber", "sosyal medya", "tara", "twitter",
-                           "reddit", "tiktok", "instagram", "trend", "viral",
-                           "sentiment", "duygu analizi", "public opinion"]
-    kod_keywords = ["kod", "python", "script", "hesapla", "fonksiyon",
-                    "program", "debug", "fix", "duzelt"]
+def gorev_tipini_belirle(gorev: str) -> GorevTipi:
+    """LLM kullanmadan, hizli tip tespiti (heuristic)."""
+    g = gorev
 
     scores = {
-        GorevTipi.WEB: sum(1 for kw in web_keywords if kw in g),
-        GorevTipi.MASAUSTU: sum(1 for kw in masaustu_keywords if kw in g),
-        GorevTipi.ANALIZ: sum(1 for kw in analiz_keywords if kw in g),
-        GorevTipi.KOD: sum(1 for kw in kod_keywords if kw in g),
-        GorevTipi.ISTIHBARAT: sum(1 for kw in istihbarat_keywords if kw in g),
+        GorevTipi.WEB: len(_WEB_PATTERN.findall(g)),
+        GorevTipi.MASAUSTU: len(_MASAUSTU_PATTERN.findall(g)),
+        GorevTipi.ANALIZ: len(_ANALIZ_PATTERN.findall(g)),
+        GorevTipi.KOD: len(_KOD_PATTERN.findall(g)),
+        GorevTipi.ISTIHBARAT: len(_ISTIHBARAT_PATTERN.findall(g)),
     }
 
     best = max(scores, key=scores.get)
@@ -456,11 +449,31 @@ class AgentikDongu:
     # FAZ 2: ROTA
     # ================================================================
 
+    def _llm_tabanli_rota(self, gorev: str) -> GorevTipi:
+        """Gorev tipini dinamik olarak LLM ile tespit et."""
+        prompt = f"""Görevin hangi kategoriye girdiğini belirle:
+Kategoriler: web, masaustu, analiz, kod, soru, istihbarat
+
+Sadece kategori adını tek kelime olarak yaz.
+
+Görev: {gorev}"""
+        try:
+            yanit = self.llm.call(system_prompt="Sen akıllı bir görev yönlendiricisisin.", user_message=prompt)
+            if yanit and "content" in yanit:
+                secim = yanit["content"].strip().lower()
+                for tip in GorevTipi:
+                    if tip.value in secim:
+                        return tip
+        except Exception as e:
+            print(f"   WARN: LLM tabanlı rota başarısız, heuristic fallback kullanılıyor ({e})")
+
+        return gorev_tipini_belirle(gorev)
+
     def faz_rota(self, gorev: str) -> Dict:
         """Gorev tipini tespit et, uygun aracı sec."""
         print(f"\n[FAZ 2] ROTA TAYINI")
 
-        tip = gorev_tipini_belirle(gorev)
+        tip = self._llm_tabanli_rota(gorev)
         print(f"   Gorev tipi : {tip.value}")
 
         rota = {
