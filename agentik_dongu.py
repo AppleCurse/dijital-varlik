@@ -456,11 +456,44 @@ class AgentikDongu:
     # FAZ 2: ROTA
     # ================================================================
 
+    def _llm_tabanli_rota(self, gorev: str) -> GorevTipi:
+        """LLM kullanarak gorev tipini dinamik olarak belirle."""
+        system_prompt = (
+            "Görevi analiz et ve en uygun kategoriyi seç. YALNIZCA KATEGORİ ADINI YAZ (küçük harflerle).\n"
+            "Kategoriler şunlardır:\n"
+            "- web: Tarayıcı kullanımı, web'de gezinme, site açma, sayfa tıklama.\n"
+            "- masaustu: Masaüstü uygulamaları (Excel, Word, Notepad vb.), dosya işlemleri, fare/klavye kontrolü.\n"
+            "- analiz: Veri analizi, özetleme, istatistik, saat/tarih gibi bilgi soruları (gerçek zamanlı veri gerektirmeyen).\n"
+            "- kod: Programlama, kod yazma, debug, hesaplama.\n"
+            "- istihbarat: Haberler, güncel olaylar, sosyal medya trendleri taraması.\n"
+            "- soru: Genel sorular, sohbet, üstteki kategorilere uymayan her şey."
+        )
+        try:
+            yanit = self.llm.call(system_prompt, gorev)
+            icerik = yanit.get("content", "").strip().lower()
+            if "web" in icerik:
+                return GorevTipi.WEB
+            elif "masaustu" in icerik:
+                return GorevTipi.MASAUSTU
+            elif "analiz" in icerik:
+                return GorevTipi.ANALIZ
+            elif "kod" in icerik:
+                return GorevTipi.KOD
+            elif "istihbarat" in icerik:
+                return GorevTipi.ISTIHBARAT
+            elif "soru" in icerik:
+                return GorevTipi.SORU
+        except Exception as e:
+            print(f"   LLM Rota Hatası: {e}. Fallback kullanılıyor.")
+
+        # Fallback: Statik anahtar kelime tabanlı belirleme
+        return gorev_tipini_belirle(gorev)
+
     def faz_rota(self, gorev: str) -> Dict:
         """Gorev tipini tespit et, uygun aracı sec."""
         print(f"\n[FAZ 2] ROTA TAYINI")
 
-        tip = gorev_tipini_belirle(gorev)
+        tip = self._llm_tabanli_rota(gorev)
         print(f"   Gorev tipi : {tip.value}")
 
         rota = {
