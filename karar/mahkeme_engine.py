@@ -273,7 +273,7 @@ class LLMClient:
         """Tek bir provider'a OpenAI-format istek gonder."""
         url = f"{provider['url'].rstrip('/')}/chat/completions"
         headers = {
-            "Authorization": f"Bearer {provider['key']}",
+            "Authorization": f"Bearer {str(provider.get('key', '')).strip()}",
             "Content-Type": "application/json"
         }
         payload = {
@@ -288,7 +288,7 @@ class LLMClient:
     def _call_openai_direct(self, system_prompt, user_message, model, temperature, max_tokens):
         """Direkt URL'ye OpenAI-format istek (geriye uyumlu fallback)."""
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {str(self.api_key or '').strip()}",
             "Content-Type": "application/json"
         }
         payload = {
