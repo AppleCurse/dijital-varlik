@@ -69,5 +69,12 @@ class LettaBridge:
             return self.session["history"][-1].get("context", "")
         return ""
 
+    def agent_durumu_yukle(self, session_id: str):
+        if "agent_durumlari" in self.session:
+            for durum in reversed(self.session["agent_durumlari"]):
+                if durum.get("session_id") == session_id:
+                    return durum.get("durum", {})
+        return None
+
 def get_letta():
     return LettaBridge()

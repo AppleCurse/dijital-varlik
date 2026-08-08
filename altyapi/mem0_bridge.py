@@ -60,5 +60,23 @@ class Mem0Bridge:
         except:
             return False
 
+    def ders_cikar(self, hata: str, cozum: str):
+        return self.olay_kaydet(f"Hata: {hata} | Cözüm: {cozum}", "ders_cikarildi", "info")
+
+    def tum_anilar(self):
+        results = []
+        if self.memory_file.exists():
+            try:
+                with open(self.memory_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        try:
+                            data = json.loads(line.strip())
+                            results.append(data)
+                        except:
+                            continue
+            except:
+                pass
+        return results
+
 def get_mem0():
     return Mem0Bridge()

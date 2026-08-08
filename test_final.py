@@ -37,8 +37,8 @@ results['Mahkeme'] = True
 print(f"  Mahkeme       : ✅ (motor hazir)")
 
 h = get_harness()
-results['Harness'] = h.MAX_DENEME == 3
-print(f"  Harness       : ✅ — {h.MAX_DENEME} deneme, {len(h.stratejiler)} strateji")
+results['Harness'] = h.max_deneme == 3
+print(f"  Harness       : ✅ — {h.max_deneme} deneme, {len(h.stratejiler)} strateji")
 
 try:
     from karar.smolagents_bridge import get_smol
@@ -51,15 +51,20 @@ except:
 
 # KATMAN 2: MUDAHALE
 print("\n[2/4] MUDAHALE")
-from mudahale import get_browser, get_skyvern
+from mudahale import get_browser
 
 b = get_browser()
 results['BrowserUse'] = b.health()
 print(f"  Browser Use   : {'✅' if b.health() else '❌'} — browserless:3001")
 
-sky = get_skyvern()
-results['Skyvern'] = sky.health()
-print(f"  Skyvern       : {'✅' if sky.health() else '⚠️'} — Skyvern API:8000 {'hazir' if sky.health() else '(sonra kurulacak)'}")
+try:
+    from mudahale.skyvern_bridge import get_skyvern
+    sky = get_skyvern()
+    results['Skyvern'] = sky.health()
+    print(f"  Skyvern       : {'✅' if sky.health() else '⚠️'} — Skyvern API:8000 {'hazir' if sky.health() else '(sonra kurulacak)'}")
+except ImportError:
+    results['Skyvern'] = False
+    print(f"  Skyvern       : ❌ (module not found)")
 
 # KATMAN 1: ALGI
 print("\n[1/4] ALGI")
