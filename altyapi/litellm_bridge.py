@@ -69,9 +69,10 @@ class LiteLLMBridge:
         """En az bir provider saglikli mi?"""
         for p in self.providers:
             try:
+                sanitized_key = str(p['key']).strip()
                 resp = requests.get(
                     f"{p['url'].rstrip('/')}/models",
-                    headers={"Authorization": f"Bearer {p['key']}"},
+                    headers={"Authorization": f"Bearer {sanitized_key}"},
                     timeout=5
                 )
                 if resp.status_code == 200:
@@ -85,9 +86,10 @@ class LiteLLMBridge:
         all_models = []
         for p in self.providers:
             try:
+                sanitized_key = str(p['key']).strip()
                 resp = requests.get(
                     f"{p['url'].rstrip('/')}/models",
-                    headers={"Authorization": f"Bearer {p['key']}"},
+                    headers={"Authorization": f"Bearer {sanitized_key}"},
                     timeout=10
                 )
                 data = resp.json().get("data", [])
@@ -117,8 +119,9 @@ class LiteLLMBridge:
                 continue
 
             url = f"{provider['url'].rstrip('/')}/chat/completions"
+            sanitized_key = str(provider['key']).strip()
             headers = {
-                "Authorization": f"Bearer {provider['key']}",
+                "Authorization": f"Bearer {sanitized_key}",
                 "Content-Type": "application/json"
             }
             payload = {
